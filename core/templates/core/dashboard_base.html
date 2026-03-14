@@ -48,7 +48,7 @@
         }
 
         .sidebar-header {
-            padding: 12px 24px;
+            padding: 11.5px 24px;
             display: flex;
             align-items: center;
             gap: 12px;
@@ -413,19 +413,14 @@
         <div class="topbar">
             <div class="breadcrumb">
                 <span class="path">Dashboard / {{ active_tab|title }}</span>
-                <span class="page-name">{% if active_tab == 'employees' %}Employee Directory{% elif active_tab ==
-                    'analytics' %}Analytics Overview{% elif active_tab == 'attendance' %}Attendance Logs{% elif
-                    active_tab == 'salary' %}Payroll Management{% elif active_tab == 'show_qr' %}Entrance QR Point{%
-                    else %}Overview{% endif %}</span>
+                <span class="page-name">{% if active_tab == 'employees' %}Employee Directory{% elif active_tab == 'analytics' %}Analytics Overview{% elif active_tab == 'attendance' %}Attendance Logs{% elif active_tab == 'salary' %}Payroll Management{% elif active_tab == 'show_qr' %}Entrance QR Point{% else %}Overview{% endif %}</span>
             </div>
 
             <div class="topbar-right">
                 <div class="user-profile">
                     <div style="text-align: right;">
-                        <span style="font-size: 13px; font-weight: 700; display: block;">{{ user.username|title
-                            }}</span>
-                        <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">System
-                            Administrator</span>
+                        <span style="font-size: 13px; font-weight: 700; display: block;">{{ user.username|title }}</span>
+                        <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">System Administrator</span>
                     </div>
                     <div class="avatar-circle">{{ user.username|first|upper }}</div>
                 </div>
@@ -433,15 +428,20 @@
         </div>
         <div class="content-area">
             {% if messages %}
-            {% for message in messages %}
-            <div class="alert alert-{% if message.tags == 'error' %}error{% else %}success{% endif %}">
-                {{ message }}
-                <button onclick="this.parentElement.style.display='none'"
-                    style="background:none; border:none; color:inherit; cursor:pointer; font-size:18px;">&times;</button>
-            </div>
-            {% endfor %}
+                {% for message in messages %}
+                    <div class="alert alert-{% if message.tags == 'error' %}error{% else %}success{% endif %}">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            {% if message.tags == 'error' %}
+                                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
+                            {% else %}
+                                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                            {% endif %}
+                            {{ message }}
+                        </div>
+                        <button onclick="this.parentElement.style.display='none'" style="background:none; border:none; color:inherit; cursor:pointer; font-size:20px; font-weight:700;">&times;</button>
+                    </div>
+                {% endfor %}
             {% endif %}
-
             {% block dashboard_content %}{% endblock %}
         </div>
     </div>

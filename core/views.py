@@ -8,12 +8,14 @@ from django.db import models
 from datetime import datetime
 import csv
 import calendar
+from django.db import models, IntegrityError
 from .models import Company, Employee, Attendance, OfficeLocation, Holiday, Absence, EmployeeDocument, SalaryAdvance, Reimbursement, Asset
 from geopy.distance import geodesic
 import qrcode
 import base64
 from io import BytesIO
 from django.utils import timezone
+from django.contrib import messages
 from .utils import send_custom_email
 
 def get_payroll_stats(emp, year, month, company):
@@ -26,38 +28,48 @@ def get_payroll_stats(emp, year, month, company):
             free_dates.add(datetime(year, month, day).date())
     
     holidays = Holiday.objects.filter(
-        models.Q(company=company) | models.Q(company=None),
+        company=company,
         date__year=year, date__month=month
     )
     for h in holidays:
         free_dates.add(h.date)
 
     # Actual Presence (Valid IN punches)
-    # Using python list comprehension to handle DateTimeField -> date conversion reliably
     valid_attendances = Attendance.objects.filter(
         employee=emp, status__in=['Valid', 'Manual'], punch_type='IN',
         timestamp__year=year, timestamp__month=month
     )
     valid_dates = set(a.timestamp.date() for a in valid_attendances)
     
-    # Paid Leaves
-    paid_leave_dates = set(Absence.objects.filter(
-        employee=emp, date__year=year, date__month=month, is_paid=True
-    ).values_list('date', flat=True))
+    # Absences & Leaves
+    absences = Absence.objects.filter(
+        employee=emp, date__year=year, date__month=month
+    )
     
-    # Unpaid Absences
-    unpaid_absence_dates = set(Absence.objects.filter(
-        employee=emp, date__year=year, date__month=month, is_paid=False
-    ).values_list('date', flat=True))
+    unpaid_full_count = absences.filter(is_paid=False, is_half_day=False).count()
+    unpaid_half_count = absences.filter(is_paid=False, is_half_day=True).count()
+    paid_leave_dates = set(absences.filter(is_paid=True).values_list('date', flat=True))
     
-    # Total Payable Days: (Present OR Holiday/Sunday OR Paid Leave) MINUS Unpaid Absences
-    payable_dates = (valid_dates | free_dates | paid_leave_dates) - unpaid_absence_dates
-    payable_count = len(payable_dates)
+    # We calculate payable days by starting with total days and subtracting unpaid absences
+    # But wait, if they don't punch in and there's no Absence record, it's also an unpaid absence?
+    # In this app, yes.
+    # So: Payable = (Present Dates | Free Dates | Paid Leave Dates)
+    # But for half day unpaid: it should be 0.5.
     
+    present_or_paid_full = (valid_dates | free_dates | paid_leave_dates)
+    
+    # Subtract 0.5 for each unpaid half day
+    payable_count = float(len(present_or_paid_full))
+    # If a day is in unpaid_half_dates, we subtract 0.5 from payable_count
+    unpaid_half_dates = set(absences.filter(is_paid=False, is_half_day=True).values_list('date', flat=True))
+    for d in unpaid_half_dates:
+        if d in present_or_paid_full:
+            payable_count -= 0.5
+            
     # Breakdown for UI/Slips
-    punched_working_days = len(valid_dates - free_dates - unpaid_absence_dates)
-    paid_free_days = len(free_dates - unpaid_absence_dates)
-    actual_paid_leaves = len(paid_leave_dates - valid_dates - free_dates - unpaid_absence_dates)
+    punched_working_days = len(valid_dates - free_dates)
+    paid_free_days = len(free_dates)
+    actual_paid_leaves = len(paid_leave_dates - valid_dates - free_dates)
     
     # Financial Calculation
     daily_rate = float(emp.monthly_salary) / total_days if total_days > 0 else 0
@@ -258,16 +270,17 @@ def mark_attendance(request, company_slug=None):
                 diff = timezone.now() - last_in.timestamp
                 work_duration = int(diff.total_seconds() / 60)
 
-        Attendance.objects.create(
-            employee=employee,
-            punch_type=punch_type,
-            latitude=lat,
-            longitude=lon,
-            distance_from_office=distance,
-            status=status,
-            is_late=is_late,
-            work_duration_minutes=work_duration
-        )
+        if status == 'Valid':
+            Attendance.objects.create(
+                employee=employee,
+                punch_type=punch_type,
+                latitude=lat,
+                longitude=lon,
+                distance_from_office=distance,
+                status=status,
+                is_late=is_late,
+                work_duration_minutes=work_duration
+            )
         
         return render(request, 'core/mark_attendance.html', {'company': company, 'message': msg, 'message_type': msg_type})
 
@@ -292,7 +305,7 @@ def admin_dashboard(request):
         if d.weekday() == 6: # Sunday only
             free_dates.add(d)
             
-    holidays = Holiday.objects.filter(models.Q(company=company) | models.Q(company=None), date__year=year, date__month=month)
+    holidays = Holiday.objects.filter(company=company, date__year=year, date__month=month)
     for h in holidays:
         free_dates.add(h.date)
 
@@ -538,7 +551,6 @@ def dashboard_add_employee(request):
         
     if request.method == 'POST':
         from django.db import IntegrityError, transaction
-        from django.contrib import messages
         
         emp_id = request.POST.get('employee_id')
         first_name = request.POST.get('first_name', '').strip()
@@ -682,11 +694,9 @@ def dashboard_settings(request):
                     company.serial_padding = len(serial_str) # Store padding (e.g., 001 -> 3)
                     company.save()
                     
-                    from django.contrib import messages
                     messages.success(request, f'ID Pattern set! Prefix: "{prefix.upper()}", Starting from: {serial_str}')
-                    return redirect('dashboard_settings')
+                    return redirect('/dashboard/settings/?tab=id-logic')
                 else:
-                    from django.contrib import messages
                     messages.error(request, 'Invalid format. Please use letters followed by numbers (e.g. EMP101)')
                     
         elif setting_type == 'localization':
@@ -694,9 +704,8 @@ def dashboard_settings(request):
             if currency_symbol:
                 company.currency_symbol = currency_symbol[:5]
                 company.save()
-                from django.contrib import messages
                 messages.success(request, f'Company Currency updated to: {currency_symbol}')
-            return redirect('dashboard_settings')
+            return redirect('/dashboard/settings/?tab=localization-hub')
         
         elif setting_type == 'smtp_settings':
             company.smtp_host = request.POST.get('smtp_host')
@@ -708,8 +717,6 @@ def dashboard_settings(request):
             company.smtp_use_tls = request.POST.get('smtp_use_tls') == 'on'
             company.smtp_use_ssl = request.POST.get('smtp_use_ssl') == 'on'
             company.save()
-            
-            from django.contrib import messages
             
             # Send test email on save
             from .utils import send_custom_email
@@ -728,10 +735,77 @@ def dashboard_settings(request):
             else:
                 messages.success(request, 'SMTP Server settings updated successfully!')
                 
-            return redirect('dashboard_settings')
+            return redirect('/dashboard/settings/?tab=mail-hub')
             
+        elif setting_type == 'add_holiday':
+            name = request.POST.get('name')
+            date_str = request.POST.get('date')
+            if name and date_str:
+                try:
+                    Holiday.objects.create(company=company, name=name, date=date_str)
+                    messages.success(request, f'Holiday "{name}" added.')
+                except IntegrityError:
+                    messages.error(request, 'A holiday already exists for this date.')
+            return redirect('/dashboard/settings/?tab=holiday-hub')
+
+        elif setting_type == 'delete_holiday':
+            h_id = request.POST.get('holiday_id')
+            Holiday.objects.filter(id=h_id, company=company).delete()
+            messages.success(request, 'Holiday removed.')
+            return redirect('/dashboard/settings/?tab=holiday-hub')
+
+        elif setting_type == 'upload_holidays_csv':
+            csv_file = request.FILES.get('csv_file')
+            if not csv_file: return redirect('/dashboard/settings/?tab=holiday-hub')
+            
+            try:
+                import io
+                content = csv_file.read().decode('utf-8-sig')
+                io_string = io.StringIO(content)
+                reader = csv.reader(io_string)
+                
+                header = next(reader, None)
+                if not header: return redirect('/dashboard/settings/?tab=holiday-hub')
+
+                header = [h.strip().lower() for h in header]
+                name_idx, date_idx = -1, -1
+                
+                for i, h in enumerate(header):
+                    if 'name' in h: name_idx = i
+                    if 'date' in h: date_idx = i
+                
+                if name_idx == -1 or date_idx == -1:
+                    name_idx, date_idx = 0, 1
+
+                count = 0
+                for row in reader:
+                    if len(row) > max(name_idx, date_idx):
+                        name = row[name_idx].strip()
+                        date_val = row[date_idx].strip()
+                        if not name or not date_val: continue
+
+                        d_obj = None
+                        for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%Y/%m/%d', '%d-%m-%Y']:
+                            try:
+                                d_obj = datetime.strptime(date_val, fmt).date()
+                                break
+                            except: continue
+                        
+                        if d_obj:
+                            Holiday.objects.update_or_create(
+                                company=company, date=d_obj,
+                                defaults={'name': name}
+                            )
+                            count += 1
+                messages.success(request, f'Imported {count} holidays.')
+            except:
+                pass
+            return redirect('/dashboard/settings/?tab=holiday-hub')
+            
+    holidays = Holiday.objects.filter(company=company).order_by('date')
     return render(request, 'core/dashboard/settings.html', {
         'company': company,
+        'holidays': holidays,
         'active_tab': 'settings',
         'current_format': f"{company.emp_id_prefix}{str(company.next_serial).zfill(company.serial_padding)}"
     })
@@ -748,7 +822,6 @@ def dashboard_edit_employee(request, emp_id):
         return redirect('dashboard_employees')
     
     if request.method == 'POST':
-        from django.contrib import messages
         from django.db import IntegrityError
         
         first_name = request.POST.get('first_name', '').strip()
@@ -819,7 +892,6 @@ def dashboard_delete_employee(request, emp_id):
         employee.delete()
         if user:
             user.delete()
-        from django.contrib import messages
         messages.success(request, f'Employee {emp_id} and associated user account deleted.')
     except Employee.DoesNotExist:
         pass
@@ -834,25 +906,74 @@ def dashboard_mark_absence(request):
     
     if request.method == 'POST':
         emp_id = request.POST.get('employee_id')
-        dates_str = request.POST.get('dates') # Expecting comma separated or list
-        is_paid = request.POST.get('is_paid') == 'true'
-        reason = request.POST.get('reason', '')
+        dates_str = request.POST.get('dates')
+        status_type = request.POST.get('status_type') # full_paid, full_unpaid, half_paid, half_unpaid
+        reason = request.POST.get('reason', 'Manual Entry')
         
         try:
             emp = Employee.objects.get(employee_id=emp_id, company=company)
             date_list = dates_str.split(',')
-            for date_str in date_list:
-                date = datetime.strptime(date_str.strip(), '%Y-%m-%d').date()
+            for d_str in date_list:
+                date_val = datetime.strptime(d_str.strip(), '%Y-%m-%d').date()
+                
+                is_paid = 'paid' in status_type
+                is_half = 'half' in status_type
+                
                 Absence.objects.update_or_create(
                     employee=emp,
-                    date=date,
-                    defaults={'reason': reason, 'is_paid': is_paid}
+                    date=date_val,
+                    defaults={'reason': reason, 'is_paid': is_paid, 'is_half_day': is_half, 'status': 'Approved'}
                 )
-            return JsonResponse({'success': True, 'message': 'Absence(s) marked successfully.'})
+                # If marking as absence, remove any valid attendance for that day to avoid double counting
+                Attendance.objects.filter(employee=emp, timestamp__date=date_val).delete()
+
+            return JsonResponse({'success': True, 'message': 'Absence marked successfully.'})
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)})
             
     return JsonResponse({'success': False, 'message': 'Invalid request'})
+
+@login_required
+def dashboard_get_attendance(request):
+    company = get_user_company(request.user)
+    emp_id = request.GET.get('employee_id')
+    month_str = request.GET.get('month') # YYYY-MM
+    
+    try:
+        emp = Employee.objects.get(employee_id=emp_id, company=company)
+        year, month = map(int, month_str.split('-'))
+        
+        # 1. Get presence
+        attendances = Attendance.objects.filter(
+            employee=emp, status__in=['Valid', 'Manual'], punch_type='IN',
+            timestamp__year=year, timestamp__month=month
+        )
+        data = {a.timestamp.strftime('%Y-%m-%d'): 'present' for a in attendances}
+        
+        # 2. Get absences
+        absences = Absence.objects.filter(employee=emp, date__year=year, date__month=month)
+        for a in absences:
+            tag = 'absent'
+            if a.is_paid and not a.is_half_day: tag = 'paid'
+            elif a.is_paid and a.is_half_day: tag = 'half_paid'
+            elif not a.is_paid and a.is_half_day: tag = 'half_unpaid'
+            data[a.date.strftime('%Y-%m-%d')] = tag
+
+        holidays_list = list(Holiday.objects.filter(
+            company=company,
+            date__year=year, date__month=month
+        ).values('date', 'name'))
+        # Convert date to string
+        for h in holidays_list:
+            h['date'] = h['date'].strftime('%Y-%m-%d')
+
+        return JsonResponse({
+            'success': True, 
+            'data': data,
+            'holidays': holidays_list
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
 
 @login_required
 def dashboard_mark_present(request):
@@ -894,7 +1015,7 @@ def dashboard_mark_present(request):
                     # Since models.py has auto_now_add=True, we can't easily override it during create().
                     # But for payroll stats, timestamp__year/month/day works fine even if it's the "created" time.
                     # Wait, if I mark "yesterday" as present, auto_now_add will set it to "today".
-                    # That's a problem for `timestamp__year=year, timestamp__month=month`.
+                    # That's a problem for `timestamp__year/month/day`.
                     
                     # I'll update Attendance model later to remove auto_now_add or I'll use a trick.
                     # Actually, let's just create it and then update the timestamp field.
@@ -995,7 +1116,6 @@ def employee_portal_leaves(request):
         
         if date_str:
             from .models import Absence
-            from django.contrib import messages
             try:
                 Absence.objects.create(
                     employee=employee,
@@ -1022,8 +1142,7 @@ def employee_profile_edit(request):
     try:
         employee = request.user.employee_profile
     except Employee.DoesNotExist:
-        logout(request)
-        return redirect('login')
+        return redirect('logout')
     
     if request.method == 'POST':
         phone = request.POST.get('phone_number')
@@ -1073,7 +1192,6 @@ def dashboard_approve_leave(request, absence_id):
         leave = Absence.objects.get(id=absence_id, employee__company=company)
         leave.status = 'Approved'
         leave.save()
-        from django.contrib import messages
         messages.success(request, f"Leave for {leave.employee.first_name} on {leave.date} has been approved.")
         
         # Automated Email
@@ -1098,7 +1216,6 @@ def dashboard_reject_leave(request, absence_id):
         leave = Absence.objects.get(id=absence_id, employee__company=company)
         leave.status = 'Rejected'
         leave.save()
-        from django.contrib import messages
         messages.warning(request, f"Leave for {leave.employee.first_name} on {leave.date} has been rejected.")
         
         # Automated Email
@@ -1181,6 +1298,7 @@ def employee_portal_documents(request):
                 doc_type=doc_type,
                 file=file
             )
+            messages.success(request, "Document uploaded successfully!")
         return redirect('employee_portal_documents')
         
     documents = employee.documents.all()
@@ -1236,7 +1354,6 @@ def dashboard_update_finance(request, req_type, req_id, action):
     company = get_user_company(request.user)
     if not company: return redirect('logout')
     
-    from django.contrib import messages
     status = 'Paid' if action == 'approve' else 'Rejected'
     
     if req_type == 'advance':
@@ -1266,5 +1383,26 @@ def dashboard_hr_documents(request):
     documents = EmployeeDocument.objects.filter(employee__company=company).order_by('-uploaded_at')
     return render(request, 'core/dashboard/hr_documents.html', {
         'documents': documents,
-        'active_tab': 'leaves'
+        'active_tab': 'hr_documents'
     })
+
+@login_required
+def download_document(request, doc_id):
+    # This view allows secure downloading of documents
+    try:
+        # If employee, they can only download their own
+        if hasattr(request.user, 'employee_profile'):
+            doc = EmployeeDocument.objects.get(id=doc_id, employee=request.user.employee_profile)
+        else:
+            # If admin, they can download anyone's in their company
+            company = get_user_company(request.user)
+            doc = EmployeeDocument.objects.get(id=doc_id, employee__company=company)
+        
+        file_path = doc.file.path
+        with open(file_path, 'rb') as f:
+            response = HttpResponse(f.read(), content_type="application/octet-stream")
+            response['Content-Disposition'] = f'attachment; filename="{doc.name}_{doc.file.name.split("/")[-1]}"'
+            return response
+    except (EmployeeDocument.DoesNotExist, FileNotFoundError):
+        messages.error(request, "Document not found or access denied.")
+        return redirect('admin_dashboard')

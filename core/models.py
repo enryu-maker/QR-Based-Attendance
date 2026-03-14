@@ -188,6 +188,7 @@ class Absence(models.Model):
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='absences')
     date = models.DateField()
     is_paid = models.BooleanField(default=False)
+    is_half_day = models.BooleanField(default=False)
     leave_type = models.CharField(max_length=20, choices=LEAVE_TYPE_CHOICES, default='Planned')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Approved') # Default to Approved for legacy admin entries
     reason = models.TextField(blank=True)

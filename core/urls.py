@@ -26,6 +26,7 @@ urlpatterns = [
     path('dashboard/leaves/approve/<int:absence_id>/', views.dashboard_approve_leave, name='dashboard_approve_leave'),
     path('dashboard/leaves/reject/<int:absence_id>/', views.dashboard_reject_leave, name='dashboard_reject_leave'),
     path('dashboard/mark_present/', views.dashboard_mark_present, name='dashboard_mark_present'),
+    path('dashboard/get_attendance/', views.dashboard_get_attendance, name='dashboard_get_attendance'),
 
     path('dashboard/map/', views.dashboard_map, name='dashboard_map'),
     path('dashboard/assets/', views.dashboard_assets, name='dashboard_assets'),
@@ -40,4 +41,5 @@ urlpatterns = [
     path('portal/profile-edit/', views.employee_profile_edit, name='employee_profile_edit'),
     path('export_attendance/', views.export_attendance, name='export_attendance'),
     path('check_punch_status/<slug:company_slug>/<str:employee_id>/', views.check_punch_status, name='check_punch_status'),
+    path('documents/download/<int:doc_id>/', views.download_document, name='download_document'),
 ]
