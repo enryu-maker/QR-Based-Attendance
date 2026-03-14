@@ -20,10 +20,12 @@
             <table>
                 <thead style="position: sticky; top: 0; z-index: 10;">
                     <tr>
-                        <th style="padding: 18px 24px;">Employee</th>
-                        <th>Days Present</th>
+                        <th style="padding: 18px 24px;">Employee / Designation</th>
+                        <th>Present</th>
+                        <th>Paid Leave</th>
+                        <th>Unpaid Abs.</th>
                         <th>Monthly Salary</th>
-                        <th>Calculated Pay</th>
+                        <th>Net Pay</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -34,15 +36,25 @@
                             <div class="avatar">{{ item.employee.first_name|first|upper }}</div>
                             <div>
                                 <div style="font-weight: 700;">{{ item.employee.first_name }} {{ item.employee.last_name }}</div>
-                                <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">{{ item.employee.employee_id }} | {{ item.employee.email }}</div>
+                                <div style="font-size: 11px; color: var(--primary); font-weight: 700; text-transform: uppercase;">{{ item.employee.designation }}</div>
                             </div>
                         </td>
                         <td>
                             <span style="background: rgba(33, 150, 243, 0.1); color: var(--primary); padding: 6px 14px; border-radius: 20px; font-weight: 700;">
-                                {{ item.days_present }} Day{{ item.days_present|pluralize }}
+                                {{ item.days_present }} D
                             </span>
                         </td>
-                        <td style="color: var(--text-muted);">₹{{ item.employee.monthly_salary }}</td>
+                        <td>
+                            <span style="background: rgba(5, 205, 153, 0.1); color: var(--success); padding: 6px 14px; border-radius: 20px; font-weight: 700;">
+                                {{ item.paid_leaves }} D
+                            </span>
+                        </td>
+                        <td>
+                            <span style="background: rgba(229, 62, 62, 0.1); color: #E53E3E; padding: 6px 14px; border-radius: 20px; font-weight: 700;">
+                                {{ item.absences }} D
+                            </span>
+                        </td>
+                        <td style="color: var(--text-muted); font-weight: 600;">₹{{ item.employee.monthly_salary }}</td>
                         <td style="font-weight: 800; color: var(--success-text); font-size: 16px;">₹{{ item.salary|floatformat:2 }}</td>
                         <td>
                             <a href="{% url 'print_salary_slip' item.employee.employee_id current_month %}" target="_blank" class="btn btn-outline" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; text-decoration: none; display: inline-block;">Print Slip</a>
@@ -50,9 +62,8 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" style="text-align: center; color: var(--text-muted); padding:30px;">
-                            <div style="font-size: 16px; margin-bottom: 6px;">No attendance logged for {{ current_month }}</div>
-                            <div style="font-size: 13px;">Select a different month to compute salary.</div>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding:30px;">
+                            <div style="font-size: 16px; margin-bottom: 6px;">No records for {{ current_month }}</div>
                         </td>
                     </tr>
                     {% endfor %}

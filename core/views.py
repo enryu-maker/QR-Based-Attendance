@@ -7,7 +7,7 @@ from django.db import models
 from datetime import datetime
 import csv
 import calendar
-from .models import Company, Employee, Attendance, OfficeLocation, Holiday
+from .models import Company, Employee, Attendance, OfficeLocation, Holiday, Absence
 from geopy.distance import geodesic
 import qrcode
 import base64
@@ -193,7 +193,7 @@ def admin_dashboard(request):
     free_dates = set()
     for day in range(1, total_days_in_month + 1):
         d = datetime(year, month, day).date()
-        if d.weekday() >= 5: # Saturday or Sunday
+        if d.weekday() == 6: # Sunday only
             free_dates.add(d)
             
     holidays = Holiday.objects.filter(models.Q(company=company) | models.Q(company=None), date__year=year, date__month=month)
@@ -215,7 +215,21 @@ def admin_dashboard(request):
         valid_dates = set(a.timestamp.date() for a in valid_attendances)
         days_present = len(valid_dates)
         
-        payable_dates = valid_dates | free_dates
+        absence_dates = set(Absence.objects.filter(
+            employee=emp,
+            date__year=year,
+            date__month=month,
+            is_paid=False
+        ).values_list('date', flat=True))
+        
+        paid_leave_count = Absence.objects.filter(
+            employee=emp,
+            date__year=year,
+            date__month=month,
+            is_paid=True
+        ).count()
+        
+        payable_dates = (valid_dates | free_dates) - absence_dates
         payable_days = len(payable_dates)
         
         salary = (float(emp.monthly_salary) / total_days_in_month) * payable_days if total_days_in_month > 0 else 0
@@ -223,6 +237,8 @@ def admin_dashboard(request):
         data.append({
             'employee': emp,
             'days_present': days_present,
+            'absences': len(absence_dates),
+            'paid_leaves': paid_leave_count,
             'salary': round(salary, 2)
         })
         
@@ -358,6 +374,7 @@ def dashboard_add_employee(request):
         email = request.POST.get('email')
         phone = request.POST.get('phone_number')
         wage = request.POST.get('monthly_salary')
+        designation = request.POST.get('designation', 'Employee')
         
         if emp_id and first_name and last_name and email and wage:
             Employee.objects.create(
@@ -367,10 +384,39 @@ def dashboard_add_employee(request):
                 last_name=last_name,
                 email=email,
                 phone_number=phone,
-                monthly_salary=wage
+                monthly_salary=wage,
+                designation=designation
             )
             return redirect('dashboard_employees')
     return render(request, 'core/dashboard/add_employee.html', {'active_tab': 'employees'})
+
+@login_required
+def dashboard_mark_absence(request):
+    company = get_user_company(request.user)
+    if not company:
+        return redirect('logout')
+    
+    if request.method == 'POST':
+        emp_id = request.POST.get('employee_id')
+        dates_str = request.POST.get('dates') # Expecting comma separated or list
+        is_paid = request.POST.get('is_paid') == 'true'
+        reason = request.POST.get('reason', '')
+        
+        try:
+            emp = Employee.objects.get(employee_id=emp_id, company=company)
+            date_list = dates_str.split(',')
+            for date_str in date_list:
+                date = datetime.strptime(date_str.strip(), '%Y-%m-%d').date()
+                Absence.objects.update_or_create(
+                    employee=emp,
+                    date=date,
+                    defaults={'reason': reason, 'is_paid': is_paid}
+                )
+            return JsonResponse({'success': True, 'message': 'Absence(s) marked successfully.'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+            
+    return JsonResponse({'success': False, 'message': 'Invalid request'})
 
 @login_required
 def export_attendance(request):
@@ -387,13 +433,13 @@ def export_attendance(request):
     response['Content-Disposition'] = f'attachment; filename="{company.slug}_attendance_{year}_{month:02d}.csv"'
     
     writer = csv.writer(response)
-    writer.writerow(['Employee ID', 'Name', 'Email', 'Days Present', 'Monthly Base', 'Calculated Salary'])
+    writer.writerow(['Employee ID', 'Name', 'Designation', 'Email', 'Days Present', 'Paid Leaves', 'Unpaid Absences', 'Monthly Base', 'Calculated Salary'])
     
     _, total_days_in_month = calendar.monthrange(year, month)
     
     free_dates = set()
     for day in range(1, total_days_in_month + 1):
-        if datetime(year, month, day).weekday() >= 5:
+        if datetime(year, month, day).weekday() == 6: # Sunday only
             free_dates.add(datetime(year, month, day).date())
             
     holidays = Holiday.objects.filter(models.Q(company=company) | models.Q(company=None), date__year=year, date__month=month)
@@ -411,14 +457,32 @@ def export_attendance(request):
         )
         valid_dates = set(a.timestamp.date() for a in valid_attendances)
         days_present = len(valid_dates)
-        payable_days = len(valid_dates | free_dates)
+        
+        absence_dates = set(Absence.objects.filter(
+            employee=emp,
+            date__year=year,
+            date__month=month,
+            is_paid=False
+        ).values_list('date', flat=True))
+
+        paid_leave_count = Absence.objects.filter(
+            employee=emp,
+            date__year=year,
+            date__month=month,
+            is_paid=True
+        ).count()
+        
+        payable_days = len((valid_dates | free_dates) - absence_dates)
         salary = (float(emp.monthly_salary) / total_days_in_month) * payable_days if total_days_in_month > 0 else 0
         
         writer.writerow([
             emp.employee_id,
             f"{emp.first_name} {emp.last_name}",
+            emp.designation,
             emp.email,
             days_present,
+            paid_leave_count,
+            len(absence_dates),
             emp.monthly_salary,
             round(salary, 2)
         ])

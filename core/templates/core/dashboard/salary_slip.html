@@ -36,8 +36,8 @@
     <div class="slip-container">
         <div class="header">
             <div>
-                <div class="company-name">AttendFlow<span style="color: #2196F3;">.</span></div>
-                <div class="company-subtitle">Universal Smart Attendance & Payroll System</div>
+                <div class="company-name">{{ company.name }}<span style="color: #2196F3;">.</span></div>
+                <div class="company-subtitle">Official Salary Disbursal Statement</div>
             </div>
             <div>
                 <div class="slip-title">Salary Slip</div>
@@ -60,7 +60,7 @@
             </div>
             <div class="detail-item">
                 <span class="detail-label">Designation:</span>
-                <span class="detail-value">Staff Member</span>
+                <span class="detail-value">{{ employee.designation }}</span>
             </div>
         </div>
         

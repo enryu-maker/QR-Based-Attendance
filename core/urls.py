@@ -16,6 +16,7 @@ urlpatterns = [
     path('dashboard/salary/print/<str:emp_id>/<str:month_str>/', views.print_salary_slip, name='print_salary_slip'),
     path('dashboard/location/', views.dashboard_location, name='dashboard_location'),
     path('dashboard/location/add/', views.dashboard_add_location, name='dashboard_add_location'),
+    path('dashboard/mark_absence/', views.dashboard_mark_absence, name='dashboard_mark_absence'),
     path('export_attendance/', views.export_attendance, name='export_attendance'),
     path('check_punch_status/<slug:company_slug>/<str:employee_id>/', views.check_punch_status, name='check_punch_status'),
 ]

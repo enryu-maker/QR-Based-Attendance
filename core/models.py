@@ -33,6 +33,7 @@ class Employee(models.Model):
     last_name = models.CharField(max_length=50)
     email = models.EmailField()
     phone_number = models.CharField(max_length=20, blank=True)
+    designation = models.CharField(max_length=100, default="Employee")
     monthly_salary = models.DecimalField(max_digits=10, decimal_places=2, default=30000.00)
 
     class Meta:
@@ -72,3 +73,16 @@ class Holiday(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.date}"
+
+class Absence(models.Model):
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='absences')
+    date = models.DateField()
+    is_paid = models.BooleanField(default=False)
+    reason = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('employee', 'date')
+
+    def __str__(self):
+        return f"{self.employee.employee_id} - {self.date} - Absent"
