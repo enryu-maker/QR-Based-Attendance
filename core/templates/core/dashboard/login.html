@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | AttendFlow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2196F3;
+            --surface: #FFFFFF;
+            --background: #F8F9FD;
+            --text-main: #0A0A0A;
+            --text-muted: #737373;
+            --border: #E0E5F2;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Public Sans', sans-serif; }
+        body { background: var(--background); display: flex; align-items: center; justify-content: center; height: 100vh; color: var(--text-main); }
+
+        .login-card {
+            background: var(--surface);
+            width: 100%;
+            max-width: 420px;
+            padding: 48px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.04);
+            border: 1px solid var(--border);
+        }
+
+        .header { text-align: center; margin-bottom: 40px; }
+        .logo { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+        .logo span { color: var(--primary); }
+        .subtitle { color: var(--text-muted); font-size: 14px; }
+
+        form label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-main); }
+        input[type="text"], input[type="password"], form input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 24px;
+            font-size: 15px;
+            transition: 0.2s;
+            background: #FAFCFF;
+            display: block;
+        }
+        input:focus, form input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.1); }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 10px;
+        }
+        .btn:hover { background: #1976D2; transform: translateY(-1px); }
+
+        .errorlist { list-style: none; color: #EE5D50; font-size: 13px; margin-bottom: 20px; text-align: center; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="header">
+            <div class="logo">AttendFlow<span>.</span></div>
+            <p class="subtitle">Admin Dashboard Authentication</p>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+            
+            {% if form.errors %}
+                <ul class="errorlist">
+                    <li>Invalid username or password. Please try again.</li>
+                </ul>
+            {% endif %}
+
+            <div>
+                <label for="id_username">Username</label>
+                {{ form.username }}
+            </div>
+
+            <div>
+                <label for="id_password">Password</label>
+                {{ form.password }}
+            </div>
+
+            <button type="submit" class="btn">Sign In to Dashboard</button>
+        </form>
+        
+        <div style="text-align: center; margin-top: 30px; font-size: 12px; color: var(--text-muted);">
+            Secure access hosted by AttendFlow Systems.
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{% extends 'core/base.html' %}
+{% block content %}
+<div class="glass-panel" style="text-align: center;">
+    <h2>Daily Attendance QR</h2>
+    <p>Scan this code with your mobile device to mark your attendance. Your location will be verified against the office premises.</p>
+    
+    <div style="background: white; padding: 15px; border-radius: 16px; display: inline-block; margin-bottom: 1.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+        <img src="data:image/png;base64,{{ qr_image }}" alt="QR Code" style="width: 250px; height: 250px; display: block;">
+    </div>
+    
+    <p style="font-size: 0.85rem; margin-bottom: 0; word-break: break-all; opacity: 0.7;">Direct URL: {{ url }}</p>
+</div>
+{% endblock %}

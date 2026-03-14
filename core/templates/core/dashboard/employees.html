@@ -1,0 +1,87 @@
+{% extends 'core/dashboard_base.html' %}
+{% block dashboard_content %}
+<div class="split-layout">
+    <div class="split-list">
+        <div class="title-bar">
+            <div>
+                <h2 style="font-size: 20px; color: var(--text-main); margin-bottom: 4px;">Users & Access List</h2>
+                <div style="font-size: 13px; color: var(--text-muted);">{{ employees|length }} Users registered</div>
+            </div>
+            <a href="{% url 'dashboard_add_employee' %}" class="btn btn-primary">+ New User</a>
+        </div>
+        <div style="flex: 1; overflow-y: auto;">
+            <table>
+                <thead style="position: sticky; top: 0; z-index: 10;">
+                    <tr>
+                        <th style="width:40px; padding: 18px 24px;">#</th>
+                        <th>Full Name</th>
+                        <th>Employee ID</th>
+                        <th>Monthly Base</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for emp in employees %}
+                    <tr style="cursor: pointer;" onclick="document.getElementById('det-name').innerText='{{emp.first_name}} {{emp.last_name}}'; document.getElementById('det-initial').innerText='{{emp.first_name|first|upper}}'; document.getElementById('det-email').innerText='{{emp.email}}'; document.getElementById('det-id').innerText='{{emp.employee_id}}'; document.getElementById('det-wage').innerText='₹{{emp.monthly_salary}}';">
+                        <td style="color:var(--text-muted); font-size:13px;">{{ forloop.counter }}</td>
+                        <td style="display: flex; align-items: center; gap: 14px; border-bottom: none;">
+                            <div class="avatar">{{ emp.first_name|first|upper }}</div>
+                            <div>
+                                <div style="font-weight: 700;">{{ emp.first_name }} {{ emp.last_name }}</div>
+                                <div style="font-size: 13px; color: var(--text-muted); margin-top:2px;">{{ emp.email }}</div>
+                            </div>
+                        </td>
+                        <td>{{ emp.employee_id }}</td>
+                        <td>₹{{ emp.monthly_salary }}</td>
+                        <td><span class="badge badge-success">Active</span></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No employees found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="split-detail">
+        <div style="height: 120px; background: linear-gradient(135deg, #E0E5F2 0%, #FAFCFF 100%); border-radius: 12px; margin-bottom: -50px;"></div>
+        <div class="avatar" id="det-initial" style="width: 80px; height: 80px; font-size: 32px; margin: 0 auto; border: 4px solid var(--surface); box-shadow: 0 4px 6px rgba(0,0,0,0.05); position: relative;">
+            {% if first_employee %}{{ first_employee.first_name|first|upper }}{% else %}?{% endif %}
+        </div>
+        <h2 id="det-name" style="text-align: center; margin-top: 16px; font-size: 22px; color: var(--text-main);">
+            {% if first_employee %}{{ first_employee.first_name }} {{ first_employee.last_name }}{% else %}Select User{% endif %}
+        </h2>
+        <div style="text-align: center; color: var(--text-muted); font-size: 14px; margin-bottom: 24px; font-weight:500;">Production Expert</div>
+        
+        <div style="display: flex; gap: 10px; margin-bottom: 30px;">
+            <button class="btn btn-outline" style="flex: 1; padding: 12px;">Assign Task</button>
+            <button class="btn btn-outline" style="flex: 1; padding: 12px; background: #E8FFF3; color: var(--success-text); border-color: transparent;">Message</button>
+        </div>
+        
+        <h3 style="font-size: 16px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">Contact information</h3>
+        
+        <div style="display: flex; flex-direction: column; gap: 16px; flex: 1;">
+            <div>
+                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px; display: flex; align-items:center; gap:6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg> E-mail
+                </div>
+                <div id="det-email" style="font-weight: 600; font-size:15px; color:var(--text-main);">{% if first_employee %}{{ first_employee.email }}{% else %}--{% endif %}</div>
+            </div>
+            
+            <div>
+                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px; display: flex; align-items:center; gap:6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg> Employee ID
+                </div>
+                <div id="det-id" style="font-weight: 600; font-size:15px; color:var(--text-main);">{% if first_employee %}{{ first_employee.employee_id }}{% else %}--{% endif %}</div>
+            </div>
+            
+            <div>
+                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px; display: flex; align-items:center; gap:6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> Monthly Base
+                </div>
+                <div id="det-wage" style="font-weight: 600; font-size:15px; color:var(--success-text);">{% if first_employee %}₹{{ first_employee.monthly_salary }}{% else %}--{% endif %}</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

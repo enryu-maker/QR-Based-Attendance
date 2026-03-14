@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ company.name }} - AttendFlow Entry</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2196F3;
+            --success: #05CD99;
+            --error: #EE5D50;
+            --bg: #F4F7FE;
+            --text: #2B3674;
+            --text-muted: #A3AED0;
+            --surface: #FFFFFF;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Standalone Header */
+        .attendance-header {
+            background: var(--surface);
+            padding: 1.5rem 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            color: white;
+            font-size: 1.25rem;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text);
+        }
+        .logo-text span { color: var(--primary); }
+
+        .company-badge {
+            background: rgba(33, 150, 243, 0.08);
+            color: var(--primary);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Main Container */
+        .main-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .attendance-card {
+            background: var(--surface);
+            width: 100%;
+            max-width: 480px;
+            padding: 3rem;
+            border-radius: 32px;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.06);
+            text-align: center;
+        }
+
+        .title-group h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        .title-group p {
+            color: var(--text-muted);
+            font-size: 1rem;
+            margin-bottom: 2.5rem;
+        }
+
+        /* Form */
+        .form-group {
+            text-align: left;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            margin-left: 0.5rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 1.25rem;
+            background: #FAFCFF;
+            border: 2px solid #E0E5F2;
+            border-radius: 1rem;
+            font-size: 1.125rem;
+            font-weight: 500;
+            transition: 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.1);
+        }
+
+        /* Status Box */
+        .status-box {
+            background: #F8F9FD;
+            padding: 1rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            border: 1px dashed #E0E5F2;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse { from { opacity: 0.4; } to { opacity: 1; } }
+
+        /* Buttons */
+        .btn-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .btn-mark {
+            width: 100%;
+            padding: 1.25rem;
+            border: none;
+            border-radius: 1.25rem;
+            font-size: 1.125rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-in {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 10px 20px rgba(33, 150, 243, 0.25);
+        }
+
+        .btn-out {
+            background: #2B3674;
+            color: white;
+            box-shadow: 0 10px 20px rgba(43, 54, 116, 0.25);
+        }
+
+        .btn-mark:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .btn-mark:not(:disabled):hover {
+            transform: translateY(-4px);
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 1.25rem;
+            border-radius: 1.25rem;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+            font-size: 0.9375rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .alert-success { background: rgba(5, 205, 153, 0.1); color: var(--success); }
+        .alert-error { background: rgba(238, 93, 80, 0.1); color: var(--error); }
+
+        footer {
+            padding: 2rem;
+            text-align: center;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        /* Animations */
+        .fade-in { animation: fadeIn 0.8s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 480px) {
+            .attendance-card { padding: 2rem 1.5rem; }
+            .attendance-header { padding: 1rem; }
+            .logo-text { font-size: 1.25rem; }
+        }
+    </style>
+</head>
+<body>
+    <header class="attendance-header">
+        <a href="#" class="logo">
+            <div class="logo-icon">A</div>
+            <div class="logo-text">AttendFlow<span>.</span></div>
+        </a>
+        <div class="company-badge">{{ company.name|default:"Universal" }}</div>
+    </header>
+
+    <main class="main-content">
+        <div class="attendance-card fade-in">
+            <div class="title-group">
+                <h1>Mark Attendance</h1>
+                <p>Verify presence for <strong>{{ company.name }}</strong></p>
+            </div>
+
+            {% if message %}
+                <div class="alert alert-{{ message_type }}">
+                    {{ message }}
+                </div>
+            {% endif %}
+
+            {% if error %}
+                <div class="alert alert-error">
+                    {{ error }}
+                </div>
+            {% endif %}
+
+            <form method="POST" id="attendance-form">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="employee_id">Employee Identifier</label>
+                    <input type="text" name="employee_id" id="employee_id" placeholder="Enter ID" required autocomplete="off">
+                </div>
+
+                <input type="hidden" name="latitude" id="lat">
+                <input type="hidden" name="longitude" id="lon">
+
+                <div id="status-container" class="status-box">
+                    <div class="status-dot" id="spinner"></div>
+                    <span id="status-msg">Initiating GPS security...</span>
+                </div>
+
+                <div class="btn-stack" id="btn-stack">
+                    <button type="submit" name="punch_type" value="IN" class="btn-mark btn-in" id="submit-btn-in" disabled>
+                        Confirm Entry (IN)
+                    </button>
+                    <button type="submit" name="punch_type" value="OUT" class="btn-mark btn-out" id="submit-btn-out" disabled style="display: none;">
+                        Confirm Exit (OUT)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <footer>
+        &copy; 2026 AttendFlow &bull; Powered by Geo-Auth Technology
+    </footer>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const latInput = document.getElementById("lat");
+            const lonInput = document.getElementById("lon");
+            const empInput = document.getElementById("employee_id");
+            const submitBtnIn = document.getElementById("submit-btn-in");
+            const submitBtnOut = document.getElementById("submit-btn-out");
+            const statusBox = document.getElementById("status-container");
+            const statusMsg = document.getElementById("status-msg");
+            const spinner = document.getElementById("spinner");
+
+            let isLocationVerified = false;
+
+            const checkPunchStatus = async () => {
+                const empId = empInput.value.trim();
+                if (empId.length < 2) return;
+
+                try {
+                    const response = await fetch(`/check_punch_status/{{ company.slug }}/${empId}/`);
+                    if (!response.ok) return;
+                    const data = await response.json();
+
+                    if (data.success) {
+                        if (data.next_punch === 'IN') {
+                            submitBtnIn.style.display = 'flex';
+                            submitBtnOut.style.display = 'none';
+                        } else {
+                            submitBtnIn.style.display = 'none';
+                            submitBtnOut.style.display = 'flex';
+                        }
+                        if (isLocationVerified) {
+                            statusMsg.innerText = `Hello ${data.employee_name}! Ready for ${data.next_punch}.`;
+                        }
+                    } else {
+                        // Fallback to IN if ID not found yet
+                        submitBtnIn.style.display = 'flex';
+                        submitBtnOut.style.display = 'none';
+                    }
+                } catch (err) {
+                    console.error("Status check failed", err);
+                }
+            };
+
+            // debounce punch status check
+            let timeout = null;
+            empInput.addEventListener('input', () => {
+                clearTimeout(timeout);
+                timeout = setTimeout(checkPunchStatus, 500);
+            });
+
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        latInput.value = position.coords.latitude;
+                        lonInput.value = position.coords.longitude;
+                        isLocationVerified = true;
+                        statusMsg.innerText = "Location Authenticated.";
+                        statusBox.style.color = "#05CD99";
+                        statusBox.style.background = "rgba(5, 205, 153, 0.05)";
+                        statusBox.style.borderColor = "#05CD99";
+                        spinner.style.background = "#05CD99";
+                        
+                        submitBtnIn.disabled = false;
+                        submitBtnOut.disabled = false;
+                        
+                        // Check if ID is already pre-filled
+                        if (empInput.value) checkPunchStatus();
+                    },
+                    (error) => {
+                        spinner.style.display = "none";
+                        statusMsg.innerText = "GPS Access Required.";
+                        statusBox.style.color = "#EE5D50";
+                        statusBox.style.background = "rgba(238, 93, 80, 0.1)";
+                        statusBox.style.borderColor = "#EE5D50";
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            } else {
+                spinner.style.display = "none";
+                statusMsg.innerText = "GPS Not Supported.";
+                statusBox.style.color = "#EE5D50";
+            }
+        });
+    </script>
+</body>
+</html>

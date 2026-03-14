@@ -1,0 +1,39 @@
+{% extends 'core/dashboard_base.html' %}
+{% block dashboard_content %}
+<div class="split-layout">
+    <div class="split-list" style="flex: 1; padding: 40px; max-width: 600px; min-height: 500px;">
+        <div style="display: flex; gap: 10px; align-items:center; margin-bottom: 24px;">
+            <a href="{% url 'dashboard_location' %}" style="text-decoration:none; color:var(--text-muted); font-size:20px;">&larr;</a>
+            <h2 style="font-size: 24px; color: var(--text-main); margin-bottom: 0px;">Add New Office Site</h2>
+        </div>
+        
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div style="margin-bottom: 24px;">
+                <label>Office Name</label>
+                <input type="text" name="name" placeholder="E.g., Mumbai Headquarters" required>
+            </div>
+            
+            <div style="display: flex; gap: 20px; margin-bottom: 24px;">
+                <div style="flex: 1;">
+                    <label>Latitude Coordinates</label>
+                    <input type="number" step="any" name="latitude" placeholder="E.g., 20.0113545" required>
+                </div>
+                <div style="flex: 1;">
+                    <label>Longitude Coordinates</label>
+                    <input type="number" step="any" name="longitude" placeholder="E.g., 73.7622829" required>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 30px;">
+                <label>Maximum Allowed Distance / Radius (Meters)</label>
+                <div style="font-size: 13px; color: var(--text-muted); margin-bottom:12px;">Employees must be within this boundary to digitally punch in successfully. Defaults to 100 meters.</div>
+                <input type="number" name="max_distance_meters" value="100" required>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 16px;">Register new Location</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

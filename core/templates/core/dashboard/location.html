@@ -1,0 +1,40 @@
+{% extends 'core/dashboard_base.html' %}
+{% block dashboard_content %}
+<div class="table-container">
+    <div class="title-bar">
+        <div>
+            <h2 style="font-size: 20px; color: var(--text-main); margin-bottom: 4px;">Office Locations</h2>
+            <div style="font-size: 13px; color: var(--text-muted);">Manage physical geo-fencing requirements</div>
+        </div>
+        <a href="{% url 'dashboard_add_location' %}" class="btn btn-primary">+ Add New Office</a>
+    </div>
+    
+    <table style="width: 100%;">
+        <thead>
+            <tr>
+                <th style="padding: 18px 24px;">Office Name</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+                <th>Allowed Radius</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for office in offices %}
+            <tr style="transition: 0.2s;">
+                <td style="display: flex; align-items: center; gap: 14px; border-bottom: none;">
+                    <div class="avatar" style="width: 32px; height: 32px; font-size: 13px;">{{ office.name|first|upper }}</div>
+                    <div style="font-weight: 700;">{{ office.name }}</div>
+                </td>
+                <td style="color:var(--text-muted);">{{ office.latitude }}</td>
+                <td style="color:var(--text-muted);">{{ office.longitude }}</td>
+                <td>
+                    <span style="background: rgba(33, 150, 243, 0.1); color: var(--primary); padding: 4px 10px; border-radius: 8px; font-weight:800;">{{ office.max_distance_meters }}m</span>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding:30px;">No offices configured yet. Add one to enable attendance mapping.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends 'core/base.html' %}
+{% block content %}
+<div class="glass-panel" style="max-width: 900px; animation: fadeIn 0.4s ease-out;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2 style="margin-bottom: 0; color: var(--primary-color);">Dashboard Overview</h2>
+        <a href="{% url 'export_attendance' %}?month={{ current_month }}" class="btn" style="width: auto; box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);">
+            Download CSV Report
+        </a>
+    </div>
+
+    <form method="GET" style="margin-bottom: 2rem; display: flex; gap: 1rem; align-items: center; background: rgba(255,255,255,0.02); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--glass-border);">
+        <label for="month" style="font-weight: 600; color: var(--surface-text);">Filter Month:</label>
+        <input type="month" id="month" name="month" value="{{ current_month }}" style="margin-bottom: 0; max-width: 250px;">
+        <button type="submit" class="btn" style="width: auto; background: transparent; border: 1px solid var(--primary-color); color: var(--surface-text);">Update</button>
+    </form>
+
+    <div style="overflow-x: auto; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid var(--glass-border);">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+                <tr style="border-bottom: 1px solid var(--glass-border); background: rgba(255,255,255,0.02);">
+                    <th style="padding: 1.2rem; color: var(--primary-color); font-weight: 700; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Employee</th>
+                    <th style="padding: 1.2rem; color: var(--primary-color); font-weight: 700; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Days Present</th>
+                    <th style="padding: 1.2rem; color: var(--primary-color); font-weight: 700; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Daily Wage</th>
+                    <th style="padding: 1.2rem; color: var(--primary-color); font-weight: 700; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Total Salary</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in data %}
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s;">
+                    <td style="padding: 1.2rem;">
+                        <div style="font-weight: 600; font-size: 1.1rem; color: var(--surface-text);">{{ item.employee.first_name }} {{ item.employee.last_name }}</div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">{{ item.employee.employee_id }} | {{ item.employee.email }}</div>
+                    </td>
+                    <td style="padding: 1.2rem;">
+                        <span style="background: rgba(33, 150, 243, 0.15); color: var(--primary-color); padding: 0.4rem 0.8rem; border-radius: 20px; font-weight: 600; font-size: 0.9rem;">
+                            {{ item.days_present }} Day{{ item.days_present|pluralize }}
+                        </span>
+                    </td>
+                    <td style="padding: 1.2rem; color: var(--surface-text);">₹{{ item.employee.daily_wage }}</td>
+                    <td style="padding: 1.2rem; font-weight: 700; color: var(--success-color); font-size: 1.1rem;">₹{{ item.salary }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="padding: 3rem; text-align: center; color: var(--text-muted);">
+                        <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">No attendance logged.</div>
+                        <div style="font-size: 0.9rem;">Try selecting a different month.</div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
