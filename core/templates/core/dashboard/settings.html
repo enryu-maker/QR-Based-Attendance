@@ -1,37 +1,304 @@
 {% extends 'core/dashboard_base.html' %}
 {% block dashboard_content %}
-<div style="max-width: 800px; margin: 0 auto;" class="animate-fade">
+<style>
+    .settings-wrapper {
+        max-width: 900px;
+        margin: 0 auto;
+        padding-bottom: 80px;
+    }
+
+    /* Tab Navigation Styling */
+    .tab-nav {
+        display: flex;
+        gap: 8px;
+        background: var(--bg);
+        padding: 6px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        margin-bottom: 24px;
+        width: fit-content;
+    }
+
+    .tab-btn {
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: none;
+        background: transparent;
+    }
+
+    .tab-btn svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .tab-btn:hover {
+        color: var(--text-main);
+    }
+
+    .tab-btn.active {
+        background: white;
+        color: var(--primary);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .settings-section {
+        display: none;
+        animation: slideUp 0.3s ease-out;
+    }
+
+    .settings-section.active {
+        display: block;
+    }
+
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .section-icon {
+        width: 36px;
+        height: 36px;
+        background: var(--primary-light);
+        color: var(--primary);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .pro-input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.2s;
+        outline: none;
+        background: white;
+    }
+
+    .pro-input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .btn-save {
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+
+    .btn-save:hover {
+        background: #1D4ED8;
+    }
+
+    .checkbox-tile {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+        border-radius: 8px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .checkbox-tile:hover {
+        border-color: var(--text-muted);
+    }
+
+    .label-text {
+        display: block;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+        text-transform: uppercase;
+    }
+</style>
+
+<div class="settings-wrapper animate-fade">
     <div style="margin-bottom: 32px;">
-        <h2 style="font-size: 24px; font-weight: 700;">Global Configuration</h2>
-        <p style="font-size: 14px; color: var(--text-muted);">Manage system-wide rules and behaviors.</p>
+        <div style="font-size: 14px; color: var(--text-muted); margin-bottom: 4px;">Dashboard / Settings</div>
+        <h1 style="font-size: 28px; font-weight: 800;">Global Configuration</h1>
     </div>
 
-    <form method="POST">
-        {% csrf_token %}
-        <div class="card" style="margin-bottom: 32px;">
-            <h3 style="font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 24px;">Employee ID Logic</h3>
-            
-            <p style="font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
-                Define the starting format for automated employee IDs. The system will detect your prefix and continue the sequence (e.g., <b>EMP101</b> → <b>EMP102</b>).
-            </p>
-
-            <div style="max-width: 400px; margin-bottom: 32px;">
-                <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 8px;">Initial format</label>
-                <input type="text" name="initial_id" value="{{ current_format }}" required style="width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; font-weight: 700; outline: none; color: var(--primary);">
-                <div style="margin-top: 12px; font-size: 12px; color: var(--text-muted);">
-                    Currently active sequence: <b style="color: var(--text-main);">{{ current_format }}</b>
-                </div>
-            </div>
-
-            <div style="background: #F8FAFC; border: 1px solid var(--border); border-radius: 8px; padding: 20px; display: flex; gap: 16px; align-items: flex-start;">
-                <div style="font-size: 20px;">💡</div>
-                <div style="font-size: 13px; line-height: 1.5;">
-                    Changing this format mid-operation will only affect <b>new</b> employees. Existing IDs will remain unchanged.
-                </div>
-            </div>
+    <div class="card">
+        <!-- Tab Navigation -->
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="showSection('id-logic', this)">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                ID Pattern
+            </button>
+            <button class="tab-btn" onclick="showSection('mail-hub', this)">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                Mail Server
+            </button>
+            <button class="tab-btn" onclick="showSection('localization-hub', this)">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Localization & Currency
+            </button>
         </div>
 
-        <button type="submit" class="btn btn-primary" style="width: 240px; height: 50px;">Save Configuration</button>
-    </form>
+        <!-- Section: ID Logic -->
+        <div id="id-logic" class="settings-section active">
+            <div class="section-header">
+                <div class="section-icon">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                </div>
+                <div>
+                    <h3 style="font-size: 16px; font-weight: 700;">Employee ID Architecture</h3>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Configure the auto-generated ID structure for new employees.</p>
+                </div>
+            </div>
+
+            <form method="POST" style="margin-top: 24px;">
+                {% csrf_token %}
+                <input type="hidden" name="setting_type" value="id_pattern">
+                <div style="margin-bottom: 32px;">
+                    <label class="label-text">Identity Format Pattern</label>
+                    <input type="text" name="initial_id" value="{{ current_format }}" required class="pro-input" style="font-family: monospace; font-size: 16px; color: var(--text-main); max-width: 400px;">
+                    <p style="margin-top: 8px; font-size: 13px; color: var(--text-muted);">Current Active: <b>{{ current_format }}</b>. Enter the desired prefix and starting number (e.g., EMP001).</p>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    Update ID Pattern
+                </button>
+            </form>
+        </div>
+
+        <!-- Section: Localization -->
+        <div id="localization-hub" class="settings-section">
+            <div class="section-header">
+                <div class="section-icon">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+                <div>
+                    <h3 style="font-size: 16px; font-weight: 700;">Financial Localization</h3>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Set the default currency symbol for all payroll and dashboard metrics.</p>
+                </div>
+            </div>
+
+            <form method="POST" style="margin-top: 24px;">
+                {% csrf_token %}
+                <input type="hidden" name="setting_type" value="localization">
+                <div style="margin-bottom: 32px;">
+                    <label class="label-text">Currency Symbol</label>
+                    <input type="text" name="currency_symbol" value="{{ company.currency_symbol }}" required class="pro-input" style="font-size: 16px; color: var(--text-main); max-width: 200px;">
+                    <p style="margin-top: 8px; font-size: 13px; color: var(--text-muted);">Enter the symbol to use across the platform (e.g. ₹, $, €, £).</p>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    Update Currency
+                </button>
+            </form>
+        </div>
+
+        <!-- Section: SMTP Settings -->
+        <div id="mail-hub" class="settings-section">
+            <div class="section-header">
+                <div class="section-icon">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                </div>
+                <div>
+                    <h3 style="font-size: 16px; font-weight: 700;">Mail Hub (SMTP) Settings</h3>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Configure outgoing email server for notifications and welcome emails.</p>
+                </div>
+            </div>
+
+            <form method="POST" style="margin-top: 24px;">
+                {% csrf_token %}
+                <input type="hidden" name="setting_type" value="smtp_settings">
+                
+                <div style="display: grid; grid-template-columns: 1fr 120px; gap: 16px; margin-bottom: 20px;">
+                    <div>
+                        <label class="label-text">SMTP Host</label>
+                        <input type="text" name="smtp_host" value="{{ company.smtp_host|default:'' }}" placeholder="smtp.gmail.com" class="pro-input">
+                    </div>
+                    <div>
+                        <label class="label-text">Port</label>
+                        <input type="number" name="smtp_port" value="{{ company.smtp_port }}" class="pro-input">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                    <div>
+                        <label class="label-text">Username</label>
+                        <input type="text" name="smtp_user" value="{{ company.smtp_user|default:'' }}" placeholder="your-email@gmail.com" class="pro-input">
+                    </div>
+                    <div>
+                        <label class="label-text">Password</label>
+                        <input type="password" name="smtp_password" placeholder="••••••••••••" class="pro-input">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 24px;">
+                    <label class="label-text">Sender Email</label>
+                    <input type="email" name="smtp_from_email" value="{{ company.smtp_from_email|default:'' }}" placeholder="no-reply@company.com" class="pro-input">
+                </div>
+
+                <div style="display: flex; gap: 16px; margin-bottom: 32px;">
+                    <label class="checkbox-tile">
+                        <input type="checkbox" name="smtp_use_tls" {% if company.smtp_use_tls %}checked{% endif %}>
+                        <span style="font-size: 13px; font-weight: 600;">Use TLS</span>
+                    </label>
+                    <label class="checkbox-tile">
+                        <input type="checkbox" name="smtp_use_ssl" {% if company.smtp_use_ssl %}checked{% endif %}>
+                        <span style="font-size: 13px; font-weight: 600;">Use SSL</span>
+                    </label>
+                </div>
+
+                <div>
+                    <button type="submit" class="btn btn-primary">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                        Save Settings
+                    </button>
+                    <!-- Removing standalone test button since saving sends a test email automatically -->
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
+
+<script>
+    function showSection(id, btn) {
+        // Hide all sections
+        document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
+        // Show target section
+        document.getElementById(id).classList.add('active');
+        
+        // Update tab buttons
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+</script>
 {% endblock %}

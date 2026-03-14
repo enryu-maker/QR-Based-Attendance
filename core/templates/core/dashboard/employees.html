@@ -6,7 +6,10 @@
     <div class="card" style="padding: 0; display: flex; flex-direction: column;">
         <div style="padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
             <h3 style="font-size: 16px; font-weight: 700;">Employee Directory</h3>
-            <a href="{% url 'dashboard_add_employee' %}" class="btn btn-primary">Add New Employee</a>
+            <a href="{% url 'dashboard_add_employee' %}" class="btn btn-primary" style="display: flex; align-items: center; gap: 8px;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                Add New Employee
+            </a>
         </div>
         <div style="flex: 1; overflow-y: auto;">
             <table style="width: 100%; border-collapse: collapse;">
@@ -21,7 +24,7 @@
                 <tbody>
                     {% for emp in employees %}
                     <tr style="cursor: pointer; border-bottom: 1px solid var(--border);" 
-                        onclick="updateDetails('{{emp.first_name}} {{emp.last_name}}', '{{emp.first_name|first|upper}}', '{{emp.email}}', '{{emp.employee_id}}', '₹{{emp.monthly_salary|floatformat:0}}', '{{emp.designation}}')">
+                        onclick="updateDetails('{{emp.first_name}} {{emp.last_name}}', '{{emp.first_name|first|upper}}', '{{emp.email}}', '{{emp.employee_id}}', '{{ company.currency_symbol }}{{emp.monthly_salary|floatformat:0}}', '{{emp.designation}}')">
                         <td style="padding: 14px 24px; display: flex; align-items: center; gap: 12px;">
                             <div class="avatar-circle" style="width: 32px; height: 32px; background: #F1F5F9; border: none;">{{ emp.first_name|first|upper }}</div>
                             <div>
@@ -30,7 +33,7 @@
                             </div>
                         </td>
                         <td style="padding: 14px 24px; font-size: 13px; font-weight: 500;">{{ emp.employee_id }}</td>
-                        <td style="padding: 14px 24px; font-size: 13px; font-weight: 600;">₹{{ emp.monthly_salary|floatformat:0 }}</td>
+                        <td style="padding: 14px 24px; font-size: 13px; font-weight: 600;">{{ company.currency_symbol }}{{ emp.monthly_salary|floatformat:0 }}</td>
                         <td style="padding: 14px 24px;">
                             <span style="padding: 4px 8px; border-radius: 4px; background: #DCFCE7; color: #166534; font-size: 10px; font-weight: 700;">ACTIVE</span>
                         </td>
@@ -58,18 +61,27 @@
                 </div>
                 <div style="background: #F8FAFC; padding: 12px; border-radius: 8px; border: 1px solid var(--border); text-align: left;">
                     <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Salary / mo</div>
-                    <div id="det-wage" style="font-size: 14px; font-weight: 700; color: var(--success);">₹{{ first_employee.monthly_salary|floatformat:0|default:"--" }}</div>
+                    <div id="det-wage" style="font-size: 14px; font-weight: 700; color: var(--success);">{{ company.currency_symbol }}{{ first_employee.monthly_salary|floatformat:0|default:"--" }}</div>
                 </div>
             </div>
 
-            <button class="btn btn-primary" style="width: 100%; margin-bottom: 12px;" onclick="openAttendanceCalendar()">Manage Attendance</button>
+            <button class="btn btn-primary" style="width: 100%; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="openAttendanceCalendar()">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                Manage Attendance
+            </button>
             <div style="display: flex; gap: 8px;">
-                <a id="det-edit-link" href="{% if first_employee %}{% url 'dashboard_edit_employee' first_employee.employee_id %}{% endif %}" class="btn btn-outline" style="flex: 1;">Edit</a>
+                <a id="det-edit-link" href="{% if first_employee %}{% url 'dashboard_edit_employee' first_employee.employee_id %}{% endif %}" class="btn btn-outline" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    Edit
+                </a>
                 <button id="det-delete-link" 
                         data-emp-id="{% if first_employee %}{{ first_employee.employee_id }}{% endif %}" 
                         data-emp-name="{% if first_employee %}{{ first_employee.first_name }} {{ first_employee.last_name }}{% endif %}"
                         onclick="confirmDelete(event)" 
-                        class="btn btn-outline" style="flex: 1; color: var(--danger);">Delete</button>
+                        class="btn btn-outline" style="flex: 1; color: var(--danger); display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    Delete
+                </button>
             </div>
         </div>
 

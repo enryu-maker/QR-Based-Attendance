@@ -1,0 +1,287 @@
+{% extends 'core/dashboard_base.html' %}
+{% block dashboard_content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+    
+    .m-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+    }
+    
+    .m-value {
+        font-size: 28px;
+        font-weight: 800;
+        color: var(--text-main);
+    }
+    
+    .content-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+    
+    .panel-title {
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 24px;
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .task-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        background: var(--bg);
+        border-radius: 8px;
+        margin-bottom: 12px;
+        border: 1px solid var(--border);
+        transition: all 0.2s;
+    }
+    
+    .task-item:hover {
+        border-color: var(--primary);
+    }
+
+    .task-badge {
+        background: #FEF2F2;
+        color: #EF4444;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .badge-premium {
+        background: var(--primary-light);
+        color: var(--primary);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+    }
+</style>
+
+<div class="animate-fade">
+    <div style="margin-bottom: 24px;">
+        <h2 style="font-size: 24px; font-weight: 800;">Master Dashboard</h2>
+        <p style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">Welcome back, {{ user.username|title }}. Here is what's happening today at {{ company.name }}.</p>
+    </div>
+
+    <!-- Top Stats -->
+    <div class="metrics-grid">
+        <a href="{% url 'dashboard_employees' %}" style="text-decoration: none; color: inherit;">
+            <div class="card" style="height: 100%; transition: transform 0.2s; border: 1px solid var(--border);">
+                <div class="m-title">Total Workforce</div>
+                <div class="m-value">{{ stats.total_employees }}</div>
+            </div>
+        </a>
+        <a href="{% url 'dashboard_attendance' %}" style="text-decoration: none; color: inherit;">
+            <div class="card" style="height: 100%; transition: transform 0.2s; border: 1px solid var(--border);">
+                <div class="m-title">Present Today</div>
+                <div class="m-value">{{ stats.active_today }}</div>
+                <div style="font-size: 12px; color: #10B981; margin-top: 8px; font-weight: 600;">{{ stats.attendance_rate }}% Rate</div>
+            </div>
+        </a>
+        <a href="{% url 'dashboard_attendance' %}" style="text-decoration: none; color: inherit;">
+            <div class="card" style="height: 100%; transition: transform 0.2s; border: 1px solid var(--border);">
+                <div class="m-title">Late Arrivals</div>
+                <div class="m-value" style="color: #EF4444;">{{ stats.late_today }}</div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">Requires Attention</div>
+            </div>
+        </a>
+        <a href="{% url 'dashboard_leaves' %}" style="text-decoration: none; color: inherit;">
+            <div class="card" style="height: 100%; transition: transform 0.2s; border: 1px solid var(--border);">
+                <div class="m-title">Pending Leaves</div>
+                <div class="m-value" style="color: #F59E0B;">{{ stats.pending_leaves }}</div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">Pending approval</div>
+            </div>
+        </a>
+    </div>
+
+    <div class="content-grid">
+        <!-- Left Column -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+            <div class="card">
+                <div class="panel-title">
+                    Attendance Velocity
+                    <div class="badge-premium">Last 7 Days</div>
+                </div>
+                <div style="height: 350px;">
+                    <canvas id="velocityChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="panel-title" style="margin-bottom: 8px; font-size: 18px;">
+                    Projected Monthly Expenditure
+                    <div style="font-size: 24px; font-weight: 800; color: #10B981;">{{ company.currency_symbol }}{{ stats.total_salary }}</div>
+                </div>
+                <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 0;">Estimated total monthly payroll based on current employee monthly base salaries.</p>
+            </div>
+        </div>
+        
+        <!-- Right Column -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+            <div class="card">
+                <div class="panel-title">Action Center</div>
+                
+                <a href="{% url 'dashboard_leaves' %}" style="text-decoration: none; color: inherit;">
+                    <div class="task-item">
+                        <div>
+                            <div style="font-weight: 700; font-size: 14px;">Leave Requests</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Requires HR approval</div>
+                        </div>
+                        {% if stats.pending_leaves > 0 %}
+                        <div class="task-badge">{{ stats.pending_leaves }} Pending</div>
+                        {% else %}
+                        <div style="font-size: 12px; color: #10B981; font-weight: 700;">Clear</div>
+                        {% endif %}
+                    </div>
+                </a>
+
+                <a href="{% url 'dashboard_financial_requests' %}" style="text-decoration: none; color: inherit;">
+                    <div class="task-item">
+                        <div>
+                            <div style="font-weight: 700; font-size: 14px;">Financial Requests</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Advances & Reimbursements</div>
+                        </div>
+                        {% if stats.pending_finance > 0 %}
+                        <div class="task-badge">{{ stats.pending_finance }} Pending</div>
+                        {% else %}
+                        <div style="font-size: 12px; color: #10B981; font-weight: 700;">Clear</div>
+                        {% endif %}
+                    </div>
+                </a>
+                
+                <a href="{% url 'dashboard_attendance' %}" style="text-decoration: none; color: inherit;">
+                    <div class="task-item" style="margin-bottom: 0;">
+                        <div>
+                            <div style="font-weight: 700; font-size: 14px;">Live Attendance</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">Monitor live punches</div>
+                        </div>
+                        <div>
+                            <svg width="16" height="16" fill="none" stroke="var(--primary)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="panel-title">Team Structure</div>
+                <div style="height: 250px;">
+                    <canvas id="structureChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Velocity Chart (Line Graph)
+    const ctxVelocity = document.getElementById('velocityChart').getContext('2d');
+    new Chart(ctxVelocity, {
+        type: 'line',
+        data: {
+            labels: {{ charts.trend_labels|safe }},
+            datasets: [{
+                label: 'Total Presence',
+                data: {{ charts.trend_data|safe }},
+                borderColor: '#2563EB',
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                fill: true,
+                tension: 0.4,
+                borderWidth: 3,
+                pointRadius: 4,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: '#2563EB',
+                pointBorderWidth: 2
+            }, {
+                label: 'Late Trends',
+                data: {{ charts.late_trend_data|safe }},
+                borderColor: '#EF4444',
+                borderDash: [5, 5],
+                tension: 0.4,
+                fill: false,
+                borderWidth: 2,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: { size: 12, weight: 600 }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { borderDash: [5, 5], color: '#f0f0f0' },
+                    ticks: { font: { weight: 600 } }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { weight: 600 } }
+                }
+            }
+        }
+    });
+
+    // Structure Chart (Doughnut)
+    const ctxStructure = document.getElementById('structureChart').getContext('2d');
+    new Chart(ctxStructure, {
+        type: 'doughnut',
+        data: {
+            labels: {{ charts.designation_labels|safe }},
+            datasets: [{
+                data: {{ charts.designation_data|safe }},
+                backgroundColor: [
+                    '#2563EB',
+                    '#10B981',
+                    '#F59E0B',
+                    '#EF4444',
+                    '#8B5CF6'
+                ],
+                borderWidth: 0,
+                cutout: '75%'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: { weight: 600 }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

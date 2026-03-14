@@ -3,16 +3,18 @@ from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.models import User
 from django.db import models
 from datetime import datetime
 import csv
 import calendar
-from .models import Company, Employee, Attendance, OfficeLocation, Holiday, Absence
+from .models import Company, Employee, Attendance, OfficeLocation, Holiday, Absence, EmployeeDocument, SalaryAdvance, Reimbursement, Asset
 from geopy.distance import geodesic
 import qrcode
 import base64
 from io import BytesIO
 from django.utils import timezone
+from .utils import send_custom_email
 
 def get_payroll_stats(emp, year, month, company):
     _, total_days = calendar.monthrange(year, month)
@@ -57,7 +59,16 @@ def get_payroll_stats(emp, year, month, company):
     paid_free_days = len(free_dates - unpaid_absence_dates)
     actual_paid_leaves = len(paid_leave_dates - valid_dates - free_dates - unpaid_absence_dates)
     
-    salary = (float(emp.monthly_salary) / total_days) * payable_count if total_days > 0 else 0
+    # Financial Calculation
+    daily_rate = float(emp.monthly_salary) / total_days if total_days > 0 else 0
+    base_salary = daily_rate * payable_count
+    
+    # Advanced Payroll Breakdown
+    allowances = float(emp.hra) + float(emp.travel_allowance) + float(emp.special_allowance)
+    deductions = float(emp.pf_deduction) + float(emp.esi_deduction) + float(emp.professional_tax)
+    
+    gross_salary = base_salary + allowances
+    net_salary = gross_salary - deductions
     
     return {
         'total_days': total_days,
@@ -66,9 +77,11 @@ def get_payroll_stats(emp, year, month, company):
         'paid_leaves': actual_paid_leaves,
         'unpaid_absences': total_days - payable_count,
         'payable_days': payable_count,
-        'salary': round(salary, 2),
-        'original_paid_leave_count': len(paid_leave_dates), # For backward compatibility in some views if needed
-        'original_unpaid_absence_count': len(unpaid_absence_dates)
+        'salary': round(max(0, net_salary), 2),
+        'gross': round(gross_salary, 2),
+        'allowances': round(allowances, 2),
+        'deductions': round(deductions, 2),
+        'base_earned': round(base_salary, 2)
     }
 
 def check_punch_status(request, company_slug, employee_id):
@@ -291,11 +304,13 @@ def admin_dashboard(request):
         
         data.append({
             'employee': emp,
-            'days_present': stats['days_present'] + stats['paid_leaves'], # Showing "Authorized Days" or similar? No, let's stick to breakdown
-            'actual_present': stats['days_present'],
+            'days_present': stats['days_present'],
             'absences': stats['unpaid_absences'],
             'paid_leaves': stats['paid_leaves'],
-            'salary': stats['salary']
+            'salary': stats['salary'],
+            'allowances': stats['allowances'],
+            'deductions': stats['deductions'],
+            'gross': stats['gross']
         })
         
     return render(request, 'core/dashboard/salary.html', {
@@ -340,8 +355,87 @@ def print_salary_slip(request, emp_id, month_str):
     return render(request, 'core/dashboard/salary_slip.html', context)
 
 @login_required
-def dashboard_redirect(request):
-    return redirect('dashboard_employees')
+def admin_dashboard_view(request):
+    company = get_user_company(request.user)
+    if not company:
+        return redirect('logout')
+        
+    from django.db.models import Count, Sum
+    from datetime import timedelta
+    today = timezone.now().date()
+    
+    # Top Level Stats
+    total_employees = Employee.objects.filter(company=company).count()
+    active_today = Attendance.objects.filter(
+        employee__company=company, 
+        timestamp__date=today, 
+        punch_type='IN'
+    ).count()
+    
+    attendance_rate = (active_today / total_employees * 100) if total_employees > 0 else 0
+    late_today = Attendance.objects.filter(
+        employee__company=company, 
+        timestamp__date=today, 
+        punch_type='IN',
+        is_late=True
+    ).count()
+
+    # Attendance Trend (Last 7 Days)
+    last_7_days = [today - timedelta(days=i) for i in range(6, -1, -1)]
+    trend_labels = [d.strftime('%b %d') for d in last_7_days]
+    trend_data = []
+    late_trend_data = []
+    
+    for day in last_7_days:
+        daily_count = Attendance.objects.filter(
+            employee__company=company, 
+            timestamp__date=day, 
+            punch_type='IN'
+        ).count()
+        trend_data.append(daily_count)
+        
+        daily_late = Attendance.objects.filter(
+            employee__company=company, 
+            timestamp__date=day, 
+            punch_type='IN',
+            is_late=True
+        ).count()
+        late_trend_data.append(daily_late)
+
+    # Designation Distribution
+    designation_counts = Employee.objects.filter(company=company).values('designation').annotate(count=Count('id')).order_by('-count')[:5]
+    designation_labels = [d['designation'] for d in designation_counts]
+    designation_data = [d['count'] for d in designation_counts]
+
+    # Salary Budget (Current Month Estimations)
+    salary_data = Employee.objects.filter(company=company).aggregate(total=Sum('monthly_salary'))['total'] or 0
+
+    # Pending Tasks/Actions
+    pending_leaves = Absence.objects.filter(employee__company=company, status='Pending').count()
+    pending_advances = SalaryAdvance.objects.filter(employee__company=company, status='Pending').count()
+    pending_reimbursements = Reimbursement.objects.filter(employee__company=company, status='Pending').count()
+
+    context = {
+        'company': company,
+        'active_tab': 'overview',
+        'stats': {
+            'total_employees': total_employees,
+            'active_today': active_today,
+            'attendance_rate': round(attendance_rate, 1),
+            'late_today': late_today,
+            'pending_leaves': pending_leaves,
+            'pending_finance': pending_advances + pending_reimbursements,
+            'total_salary': salary_data
+        },
+        'charts': {
+            'trend_labels': trend_labels,
+            'trend_data': trend_data,
+            'late_trend_data': late_trend_data,
+            'designation_labels': designation_labels,
+            'designation_data': designation_data
+        }
+    }
+    return render(request, 'core/dashboard/overview.html', context)
 
 @login_required
 def dashboard_employees(request):
@@ -441,61 +535,123 @@ def dashboard_add_employee(request):
     company = get_user_company(request.user)
     if not company:
         return redirect('logout')
+        
     if request.method == 'POST':
+        from django.db import IntegrityError, transaction
+        from django.contrib import messages
+        
         emp_id = request.POST.get('employee_id')
-        if not emp_id:
-            emp_id = f"{company.emp_id_prefix}{str(company.next_serial).zfill(company.serial_padding)}"
-            company.next_serial += 1
-            company.save()
-            
-        first_name = request.POST.get('first_name')
-        last_name = request.POST.get('last_name')
-        email = request.POST.get('email')
-        phone = request.POST.get('phone_number')
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        email = request.POST.get('email', '').strip().lower()
+        phone = request.POST.get('phone_number', '').strip()
         wage = request.POST.get('monthly_salary')
-        designation = request.POST.get('designation', 'Employee')
+        designation = request.POST.get('designation', 'Employee').strip()
         shift_start = request.POST.get('shift_start', '09:00')
         shift_end = request.POST.get('shift_end', '18:00')
+        joining_date = request.POST.get('joining_date', timezone.now().date())
         
-        if emp_id and first_name and last_name and email and wage:
-            # Create User for employee
-            import secrets
-            import string
-            
-            # Generate Unique Username
-            base_username = f"{first_name.lower()}.{last_name.lower()}"
-            username = base_username
-            counter = 1
-            while User.objects.filter(username=username).exists():
-                username = f"{base_username}{counter}"
-                counter += 1
-            
-            # Generate Random Password
-            alphabet = string.ascii_letters + string.digits
-            rand_password = ''.join(secrets.choice(alphabet) for i in range(8))
-            
-            user, created = User.objects.get_or_create(username=username, email=email)
-            if created:
-                user.set_password(rand_password)
-                user.save()
-            
-            Employee.objects.create(
-                user=user,
-                company=company,
-                employee_id=emp_id,
-                first_name=first_name,
-                last_name=last_name,
-                email=email,
-                phone_number=phone,
-                monthly_salary=wage,
-                designation=designation,
-                shift_start=shift_start,
-                shift_end=shift_end
-            )
-            
-            from django.contrib import messages
-            messages.success(request, f'Employee Registered! ID: {emp_id} | Username: {username} | Password: {rand_password}')
-            return redirect('dashboard_employees')
+        # Payroll breakdown
+        hra = request.POST.get('hra', 0) or 0
+        travel_allowance = request.POST.get('travel_allowance', 0) or 0
+        special_allowance = request.POST.get('special_allowance', 0) or 0
+        pf_deduction = request.POST.get('pf_deduction', 0) or 0
+        esi_deduction = request.POST.get('esi_deduction', 0) or 0
+        professional_tax = request.POST.get('professional_tax', 0) or 0
+        
+        if not (first_name and last_name and email and wage):
+            messages.error(request, "Please fill all required fields.")
+        else:
+            try:
+                with transaction.atomic():
+                    # 1. Check if employee ID already exists in this company
+                    if emp_id and Employee.objects.filter(company=company, employee_id=emp_id).exists():
+                        messages.error(request, f"Employee ID '{emp_id}' is already in use.")
+                        raise IntegrityError()
+
+                    # 2. Check if email is already used by an employee in this company
+                    if Employee.objects.filter(company=company, email=email).exists():
+                        messages.error(request, f"Email '{email}' is already registered for another employee.")
+                        raise IntegrityError()
+
+                    # 3. Generate Auto-ID if needed
+                    if not emp_id:
+                        emp_id = f"{company.emp_id_prefix}{str(company.next_serial).zfill(company.serial_padding)}"
+                        company.next_serial += 1
+                        company.save()
+
+                    # 4. Handle User Creation
+                    if User.objects.filter(email=email).exists():
+                        user = User.objects.filter(email=email).first()
+                        if hasattr(user, 'employee_profile'):
+                            messages.error(request, f"A user with email '{email}' already exists and is linked to another employee.")
+                            raise IntegrityError()
+                        username = user.username
+                        rand_password = "--- Use Existing ---"
+                    else:
+                        username = email.split('@')[0]
+                        base_username = username
+                        counter = 1
+                        while User.objects.filter(username=username).exists():
+                            username = f"{base_username}{counter}"
+                            counter += 1
+                        
+                        user = User.objects.create_user(
+                            username=username,
+                            email=email,
+                            password=emp_id
+                        )
+                        rand_password = emp_id
+
+                    # 5. Create Employee
+                    Employee.objects.create(
+                        user=user,
+                        company=company,
+                        employee_id=emp_id,
+                        first_name=first_name,
+                        last_name=last_name,
+                        email=email,
+                        phone_number=phone,
+                        monthly_salary=wage,
+                        designation=designation,
+                        shift_start=shift_start,
+                        shift_end=shift_end,
+                        joining_date=joining_date,
+                        hra=hra,
+                        travel_allowance=travel_allowance,
+                        special_allowance=special_allowance,
+                        pf_deduction=pf_deduction,
+                        esi_deduction=esi_deduction,
+                        professional_tax=professional_tax
+                    )
+                    
+                    messages.success(request, f'Employee Registered! ID: {emp_id} | Username: {username} | Password: {rand_password}')
+                    
+                    # --- Automated Welcome Email ---
+                    if company.smtp_host:
+                        subject = f"Welcome to {company.name} - Workspace Credentials"
+                        body = f"Hello {first_name},\n\n" \
+                               f"Your account has been created on the {company.name} Attendance Management System.\n\n" \
+                               f"Below are your access credentials:\n" \
+                               f"Employee ID: {emp_id}\n" \
+                               f"Username: {username}\n" \
+                               f"Temporary Password: {rand_password}\n\n" \
+                               f"You can log in at: {request.build_absolute_uri('/')}\n\n" \
+                               f"Best Regards,\n" \
+                               f"The HR Team"
+                        
+                        sent = send_custom_email(company, subject, body, [email])
+                        if sent:
+                            messages.info(request, f"Welcome email dispatched to {email}")
+                        else:
+                            messages.warning(request, "Employee created, but welcome email failed (Check SMTP settings).")
+
+                    return redirect('dashboard_employees')
+            except IntegrityError:
+                pass 
+            except Exception as e:
+                messages.error(request, f"An unexpected error occurred: {str(e)}")
+
     return render(request, 'core/dashboard/add_employee.html', {
         'company': company,
         'active_tab': 'employees',
@@ -509,26 +665,70 @@ def dashboard_settings(request):
         return redirect('logout')
     
     if request.method == 'POST':
-        initial_id = request.POST.get('initial_id', '').strip()
-        if initial_id:
-            import re
-            # Split "EMP001" into "EMP" and "001"
-            match = re.search(r'([a-zA-Z\-_]*)(\d+)$', initial_id)
-            if match:
-                prefix = match.group(1)
-                serial_str = match.group(2)
-                
-                company.emp_id_prefix = prefix.upper()
-                company.next_serial = int(serial_str)
-                company.serial_padding = len(serial_str) # Store padding (e.g., 001 -> 3)
+        setting_type = request.POST.get('setting_type')
+        
+        if setting_type == 'id_pattern':
+            initial_id = request.POST.get('initial_id', '').strip()
+            if initial_id:
+                import re
+                # Split "EMP001" into "EMP" and "001"
+                match = re.search(r'([a-zA-Z\-_]*)(\d+)$', initial_id)
+                if match:
+                    prefix = match.group(1)
+                    serial_str = match.group(2)
+                    
+                    company.emp_id_prefix = prefix.upper()
+                    company.next_serial = int(serial_str)
+                    company.serial_padding = len(serial_str) # Store padding (e.g., 001 -> 3)
+                    company.save()
+                    
+                    from django.contrib import messages
+                    messages.success(request, f'ID Pattern set! Prefix: "{prefix.upper()}", Starting from: {serial_str}')
+                    return redirect('dashboard_settings')
+                else:
+                    from django.contrib import messages
+                    messages.error(request, 'Invalid format. Please use letters followed by numbers (e.g. EMP101)')
+                    
+        elif setting_type == 'localization':
+            currency_symbol = request.POST.get('currency_symbol', '').strip()
+            if currency_symbol:
+                company.currency_symbol = currency_symbol[:5]
                 company.save()
+                from django.contrib import messages
+                messages.success(request, f'Company Currency updated to: {currency_symbol}')
+            return redirect('dashboard_settings')
+        
+        elif setting_type == 'smtp_settings':
+            company.smtp_host = request.POST.get('smtp_host')
+            company.smtp_port = int(request.POST.get('smtp_port', 587))
+            company.smtp_user = request.POST.get('smtp_user')
+            if request.POST.get('smtp_password'): # Only update if password provided
+                company.smtp_password = request.POST.get('smtp_password')
+            company.smtp_from_email = request.POST.get('smtp_from_email')
+            company.smtp_use_tls = request.POST.get('smtp_use_tls') == 'on'
+            company.smtp_use_ssl = request.POST.get('smtp_use_ssl') == 'on'
+            company.save()
+            
+            from django.contrib import messages
+            
+            # Send test email on save
+            from .utils import send_custom_email
+            if company.smtp_host:
+                subject = "SMTP Configuration Successful - AttendOS"
+                body = f"Hello,\n\nYour SMTP settings for {company.name} have been configured successfully. Your system is now ready to dispatch emails.\n\nBest Regards,\nThe AttendOS Team"
                 
-                from django.contrib import messages
-                messages.success(request, f'ID Pattern set! Prefix: "{prefix.upper()}", Starting from: {serial_str}')
-                return redirect('dashboard_settings')
+                try:
+                    sent = send_custom_email(company, subject, body, [request.user.email])
+                    if sent:
+                        messages.success(request, 'SMTP Server settings updated successfully! A test email has been sent to your address.')
+                    else:
+                        messages.warning(request, 'SMTP Server settings saved, but test email failed. Please verify your credentials.')
+                except Exception as e:
+                    messages.warning(request, f'SMTP settings saved, but test email failed: {str(e)}')
             else:
-                from django.contrib import messages
-                messages.error(request, 'Invalid format. Please use letters followed by numbers (e.g. EMP101)')
+                messages.success(request, 'SMTP Server settings updated successfully!')
+                
+            return redirect('dashboard_settings')
             
     return render(request, 'core/dashboard/settings.html', {
         'company': company,
@@ -548,38 +748,61 @@ def dashboard_edit_employee(request, emp_id):
         return redirect('dashboard_employees')
     
     if request.method == 'POST':
-        first_name = request.POST.get('first_name')
-        last_name = request.POST.get('last_name')
-        email = request.POST.get('email')
-        phone = request.POST.get('phone_number')
+        from django.contrib import messages
+        from django.db import IntegrityError
+        
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        email = request.POST.get('email', '').strip().lower()
+        phone = request.POST.get('phone_number', '').strip()
         wage = request.POST.get('monthly_salary')
-        designation = request.POST.get('designation')
+        designation = request.POST.get('designation', 'Employee').strip()
         shift_start = request.POST.get('shift_start')
         shift_end = request.POST.get('shift_end')
         new_password = request.POST.get('password')
         
-        if first_name and last_name and email and wage:
-            employee.first_name = first_name
-            employee.last_name = last_name
-            employee.email = email
-            employee.phone_number = phone
-            employee.monthly_salary = wage
-            employee.designation = designation
-            employee.shift_start = shift_start
-            employee.shift_end = shift_end
-            employee.save()
-            
-            # Update associated User if exists
-            if employee.user:
-                employee.user.email = email
-                if new_password:
-                    employee.user.set_password(new_password)
-                employee.user.save()
-            
-            return redirect('dashboard_employees')
+        if not (first_name and last_name and email and wage):
+            messages.error(request, "Please fill all required fields.")
+        else:
+            try:
+                # Check for email conflict in THIS company (except this employee)
+                if Employee.objects.filter(company=company, email=email).exclude(id=employee.id).exists():
+                    messages.error(request, f"Email '{email}' is already in use by another employee.")
+                else:
+                    employee.first_name = first_name
+                    employee.last_name = last_name
+                    employee.email = email
+                    employee.phone_number = phone
+                    employee.monthly_salary = wage
+                    employee.designation = designation
+                    employee.shift_start = shift_start
+                    employee.shift_end = shift_end
+                    
+                    employee.joining_date = request.POST.get('joining_date', employee.joining_date)
+                    employee.hra = request.POST.get('hra', 0) or 0
+                    employee.travel_allowance = request.POST.get('travel_allowance', 0) or 0
+                    employee.special_allowance = request.POST.get('special_allowance', 0) or 0
+                    employee.pf_deduction = request.POST.get('pf_deduction', 0) or 0
+                    employee.esi_deduction = request.POST.get('esi_deduction', 0) or 0
+                    employee.professional_tax = request.POST.get('professional_tax', 0) or 0
+                    
+                    employee.save()
+                    
+                    # Update associated User if exists
+                    if employee.user:
+                        employee.user.email = email
+                        if new_password:
+                            employee.user.set_password(new_password)
+                        employee.user.save()
+                    
+                    messages.success(request, f"Employee '{first_name}' updated successfully.")
+                    return redirect('dashboard_employees')
+            except Exception as e:
+                messages.error(request, f"Error updating employee: {str(e)}")
             
     return render(request, 'core/dashboard/edit_employee.html', {
         'employee': employee,
+        'company': company,
         'active_tab': 'employees'
     })
 
@@ -753,6 +976,45 @@ def employee_portal(request):
         'stats': stats,
         'attendances': attendances,
         'current_month': f"{year}-{month:02d}",
+        'active_tab': 'dashboard'
+    })
+
+@login_required
+def employee_portal_leaves(request):
+    try:
+        employee = request.user.employee_profile
+    except Employee.DoesNotExist:
+        logout(request)
+        return redirect('login')
+    
+    if request.method == 'POST':
+        date_str = request.POST.get('date')
+        leave_type = request.POST.get('leave_type')
+        reason = request.POST.get('reason')
+        is_paid = request.POST.get('is_paid') == 'true'
+        
+        if date_str:
+            from .models import Absence
+            from django.contrib import messages
+            try:
+                Absence.objects.create(
+                    employee=employee,
+                    date=date_str,
+                    leave_type=leave_type,
+                    reason=reason,
+                    is_paid=is_paid,
+                    status='Pending'
+                )
+                messages.success(request, f"Leave application submitted for {date_str}. Waiting for admin approval.")
+            except Exception as e:
+                messages.error(request, f"Could not submit leave: {str(e)}")
+        return redirect('employee_portal_leaves')
+
+    leaves = employee.absences.all().order_by('-date')
+    return render(request, 'core/portal/leaves.html', {
+        'employee': employee,
+        'leaves': leaves,
+        'active_tab': 'leaves'
     })
 
 @login_required
@@ -780,47 +1042,78 @@ def employee_profile_edit(request):
             
         return redirect('employee_portal')
         
-    return render(request, 'core/portal/edit_profile.html', {'employee': employee})
+    return render(request, 'core/portal/edit_profile.html', {
+        'employee': employee,
+        'active_tab': 'profile'
+    })
 
 @login_required
-def dashboard_analytics(request):
+def dashboard_leaves(request):
     company = get_user_company(request.user)
     if not company:
         return redirect('logout')
-        
-    # Get stats for last 30 days
-    last_30_days = timezone.now() - timezone.timedelta(days=30)
-    attendance_qs = Attendance.objects.filter(
-        employee__company=company,
-        timestamp__gte=last_30_days,
-        status__in=['Valid', 'Manual']
-    )
     
-    # Query data
-    late_counts = attendance_qs.filter(is_late=True, punch_type='IN').values('timestamp__date').annotate(count=models.Count('id')).order_by('timestamp__date')
-    presence_counts = attendance_qs.filter(punch_type='IN').values('timestamp__date').annotate(count=models.Count('id')).order_by('timestamp__date')
+    pending_leaves = Absence.objects.filter(employee__company=company, status='Pending').order_by('date')
+    history_leaves = Absence.objects.filter(employee__company=company).exclude(status='Pending').order_by('-date')[:50]
+    
+    return render(request, 'core/dashboard/leaves.html', {
+        'company': company,
+        'pending_leaves': pending_leaves,
+        'history_leaves': history_leaves,
+        'active_tab': 'leaves'
+    })
 
-    # Convert dates to strings for JSON serialization
-    presence_list = []
-    for d in presence_counts:
-        presence_list.append({
-            'date': d['timestamp__date'].strftime('%Y-%m-%d'),
-            'count': d['count']
-        })
-        
-    late_list = []
-    for d in late_counts:
-        late_list.append({
-            'date': d['timestamp__date'].strftime('%Y-%m-%d'),
-            'count': d['count']
-        })
+@login_required
+def dashboard_approve_leave(request, absence_id):
+    company = get_user_company(request.user)
+    if not company:
+        return redirect('logout')
     
-    context = {
-        'active_tab': 'analytics',
-        'late_data': late_list,
-        'presence_data': presence_list,
-    }
-    return render(request, 'core/dashboard/analytics.html', context)
+    try:
+        leave = Absence.objects.get(id=absence_id, employee__company=company)
+        leave.status = 'Approved'
+        leave.save()
+        from django.contrib import messages
+        messages.success(request, f"Leave for {leave.employee.first_name} on {leave.date} has been approved.")
+        
+        # Automated Email
+        if company.smtp_host:
+            from .utils import send_custom_email
+            subject = f"Leave Request Approved - {company.name}"
+            body = f"Hello {leave.employee.first_name},\n\nYour leave request for {leave.date.strftime('%b %d, %Y')} has been Approved.\n\nBest Regards,\nThe HR Team"
+            send_custom_email(company, subject, body, [leave.employee.email])
+            
+    except Absence.DoesNotExist:
+        pass
+        
+    return redirect('dashboard_leaves')
+
+@login_required
+def dashboard_reject_leave(request, absence_id):
+    company = get_user_company(request.user)
+    if not company:
+        return redirect('logout')
+    
+    try:
+        leave = Absence.objects.get(id=absence_id, employee__company=company)
+        leave.status = 'Rejected'
+        leave.save()
+        from django.contrib import messages
+        messages.warning(request, f"Leave for {leave.employee.first_name} on {leave.date} has been rejected.")
+        
+        # Automated Email
+        if company.smtp_host:
+            from .utils import send_custom_email
+            subject = f"Leave Request Update - {company.name}"
+            body = f"Hello {leave.employee.first_name},\n\nYour leave request for {leave.date.strftime('%b %d, %Y')} has unfortunately been Rejected. Please contact HR for more details.\n\nBest Regards,\nThe HR Team"
+            send_custom_email(company, subject, body, [leave.employee.email])
+            
+    except Absence.DoesNotExist:
+        pass
+        
+    return redirect('dashboard_leaves')
+
+
 
 @login_required
 def dashboard_map(request):
@@ -840,4 +1133,138 @@ def dashboard_map(request):
         'active_tab': 'map',
         'attendances': attendances,
         'offices': offices
+    })
+
+@login_required
+def dashboard_assets(request):
+    company = get_user_company(request.user)
+    if not company: return redirect('logout')
+    
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        asset_id = request.POST.get('asset_id')
+        assigned_to_id = request.POST.get('assigned_to')
+        
+        employee = None
+        if assigned_to_id:
+            employee = Employee.objects.filter(id=assigned_to_id, company=company).first()
+            
+        Asset.objects.create(
+            company=company,
+            name=name,
+            asset_id=asset_id,
+            assigned_to=employee,
+            status='Assigned' if employee else 'Available'
+        )
+        return redirect('dashboard_assets')
+        
+    assets = Asset.objects.filter(company=company)
+    employees = Employee.objects.filter(company=company)
+    return render(request, 'core/dashboard/assets.html', {'assets': assets, 'employees': employees, 'active_tab': 'assets'})
+
+@login_required
+def employee_portal_documents(request):
+    try:
+        employee = request.user.employee_profile
+    except Employee.DoesNotExist:
+        return redirect('logout')
+        
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        doc_type = request.POST.get('doc_type')
+        file = request.FILES.get('file')
+        
+        if file:
+            EmployeeDocument.objects.create(
+                employee=employee,
+                name=name,
+                doc_type=doc_type,
+                file=file
+            )
+        return redirect('employee_portal_documents')
+        
+    documents = employee.documents.all()
+    return render(request, 'core/portal/documents.html', {'documents': documents, 'active_tab': 'documents'})
+
+@login_required
+def employee_portal_payroll(request):
+    try:
+        employee = request.user.employee_profile
+    except Employee.DoesNotExist:
+        return redirect('logout')
+        
+    if request.method == 'POST':
+        request_type = request.POST.get('request_type') # advance or reimbursement
+        
+        if request_type == 'advance':
+            amount = request.POST.get('amount')
+            reason = request.POST.get('reason')
+            SalaryAdvance.objects.create(employee=employee, amount=amount, reason=reason)
+        elif request_type == 'reimbursement':
+            title = request.POST.get('title')
+            amount = request.POST.get('amount')
+            receipt = request.FILES.get('receipt')
+            Reimbursement.objects.create(employee=employee, title=title, amount=amount, receipt=receipt)
+            
+        return redirect('employee_portal_payroll')
+        
+    advances = employee.advances.all().order_by('-requested_at')
+    reimbursements = employee.reimbursements.all().order_by('-created_at')
+    return render(request, 'core/portal/payroll_requests.html', {
+        'advances': advances, 
+        'reimbursements': reimbursements,
+        'active_tab': 'payroll'
+    })
+
+# Admin HR & Payroll Extensions
+@login_required
+def dashboard_financial_requests(request):
+    company = get_user_company(request.user)
+    if not company: return redirect('logout')
+    
+    pending_advances = SalaryAdvance.objects.filter(employee__company=company, status='Pending').order_by('-requested_at')
+    pending_reimbursements = Reimbursement.objects.filter(employee__company=company, status='Pending').order_by('-created_at')
+    
+    return render(request, 'core/dashboard/financial_requests.html', {
+        'advances': pending_advances,
+        'reimbursements': pending_reimbursements,
+        'active_tab': 'salary'
+    })
+
+@login_required
+def dashboard_update_finance(request, req_type, req_id, action):
+    company = get_user_company(request.user)
+    if not company: return redirect('logout')
+    
+    from django.contrib import messages
+    status = 'Paid' if action == 'approve' else 'Rejected'
+    
+    if req_type == 'advance':
+        obj = SalaryAdvance.objects.get(id=req_id, employee__company=company)
+        req_name = "Salary Advance"
+    else:
+        obj = Reimbursement.objects.get(id=req_id, employee__company=company)
+        req_name = "Reimbursement"
+        
+    obj.status = status
+    obj.save()
+    messages.success(request, f"Request {action}d successfully.")
+    
+    # Automated Email
+    if company.smtp_host:
+        from .utils import send_custom_email
+        subject = f"Financial Request {status} - {company.name}"
+        body = f"Hello {obj.employee.first_name},\n\nYour {req_name} request of ${obj.amount} has been {status}.\n\nBest Regards,\nThe Finance Team"
+        send_custom_email(company, subject, body, [obj.employee.email])
+    return redirect('dashboard_financial_requests')
+
+@login_required
+def dashboard_hr_documents(request):
+    company = get_user_company(request.user)
+    if not company: return redirect('logout')
+    
+    documents = EmployeeDocument.objects.filter(employee__company=company).order_by('-uploaded_at')
+    return render(request, 'core/dashboard/hr_documents.html', {
+        'documents': documents,
+        'active_tab': 'leaves'
     })

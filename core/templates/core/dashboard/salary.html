@@ -9,9 +9,15 @@
         <div style="display: flex; gap: 12px; align-items: center;">
             <form method="GET" style="display: flex; gap: 8px;">
                 <input type="month" name="month" value="{{ current_month }}" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px; font-weight: 600;">
-                <button type="submit" class="btn btn-outline" style="padding: 6px 12px;">Filter</button>
+                <button type="submit" class="btn btn-outline" style="padding: 6px 12px; display: flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                    Filter
+                </button>
             </form>
-            <a href="{% url 'export_attendance' %}?month={{ current_month }}" class="btn btn-primary" style="padding: 8px 16px;">Export CSV</a>
+            <a href="{% url 'export_attendance' %}?month={{ current_month }}" class="btn btn-primary" style="padding: 8px 16px; display: flex; align-items: center; gap: 8px;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Export CSV
+            </a>
         </div>
     </div>
     
@@ -20,8 +26,8 @@
             <tr style="text-align: left; border-bottom: 1px solid var(--border);">
                 <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Employee</th>
                 <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Presence</th>
-                <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Paid Leave</th>
-                <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Absence</th>
+                <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Allowances</th>
+                <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Deductions</th>
                 <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Net Pay</th>
                 <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Actions</th>
             </tr>
@@ -36,12 +42,21 @@
                         <div style="font-size: 11px; color: var(--primary); font-weight: 700;">{{ item.employee.designation }}</div>
                     </div>
                 </td>
-                <td style="padding: 14px 24px;"><span style="font-size: 13px; font-weight: 600; color: var(--primary);">{{ item.days_present }}d</span></td>
-                <td style="padding: 14px 24px;"><span style="font-size: 13px; font-weight: 600; color: var(--success);">{{ item.paid_leaves }}d</span></td>
-                <td style="padding: 14px 24px;"><span style="font-size: 13px; font-weight: 600; color: var(--danger);">{{ item.absences }}d</span></td>
-                <td style="padding: 14px 24px;"><span style="font-size: 14px; font-weight: 700;">₹{{ item.salary|floatformat:2 }}</span></td>
                 <td style="padding: 14px 24px;">
-                    <a href="{% url 'print_salary_slip' item.employee.employee_id current_month %}" target="_blank" class="btn btn-outline" style="padding: 4px 10px; font-size: 11px; border-radius: 4px;">Print Slip</a>
+                    <div style="font-size: 13px; font-weight: 600; color: var(--primary);">{{ item.days_present }}d Present</div>
+                    <div style="font-size: 11px; color: var(--success);">{{ item.paid_leaves }}d Paid Leave</div>
+                </td>
+                <td style="padding: 14px 24px;"><span style="font-size: 13px; font-weight: 600; color: var(--success);">+{{ company.currency_symbol }}{{ item.allowances|floatformat:2 }}</span></td>
+                <td style="padding: 14px 24px;"><span style="font-size: 13px; font-weight: 600; color: var(--danger);">-{{ company.currency_symbol }}{{ item.deductions|floatformat:2 }}</span></td>
+                <td style="padding: 14px 24px; text-align: right;">
+                    <div style="font-size: 14px; font-weight: 800;">{{ company.currency_symbol }}{{ item.salary|floatformat:2 }}</div>
+                    <div style="font-size: 10px; color: var(--text-muted);">Gross: {{ company.currency_symbol }}{{ item.gross|floatformat:2 }}</div>
+                </td>
+                <td style="padding: 14px 24px;">
+                    <a href="{% url 'print_salary_slip' item.employee.employee_id current_month %}" target="_blank" class="btn btn-outline" style="padding: 4px 10px; font-size: 11px; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px;">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                        Print Slip
+                    </a>
                 </td>
             </tr>
             {% empty %}

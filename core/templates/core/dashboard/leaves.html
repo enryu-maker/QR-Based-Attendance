@@ -1,0 +1,106 @@
+{% extends 'core/dashboard_base.html' %}
+{% block dashboard_content %}
+<div class="animate-fade">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px;">
+        <div>
+            <h2 style="font-size: 24px; font-weight: 700;">HR Leave Management</h2>
+            <p style="font-size: 14px; color: var(--text-muted);">Review and approve employee leave applications</p>
+        </div>
+    </div>
+
+    <!-- Pending Requests -->
+    <div class="card" style="padding: 0; margin-bottom: 32px; border-color: var(--primary);">
+        <div style="padding: 24px; border-bottom: 1px solid var(--border); background: var(--primary-light);">
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--primary);">Pending Approval</h3>
+            <p style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Applications requiring your immediate attention</p>
+        </div>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="text-align: left; border-bottom: 1px solid var(--border);">
+                    <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Employee</th>
+                    <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Leave Date</th>
+                    <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Type</th>
+                    <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Payment</th>
+                    <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for leave in pending_leaves %}
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 14px 24px; display: flex; align-items: center; gap: 12px;">
+                        <div class="avatar-circle" style="width: 32px; height: 32px; background: var(--bg);">{{ leave.employee.first_name|first|upper }}</div>
+                        <div>
+                            <div style="font-weight: 600; font-size: 14px;">{{ leave.employee.first_name }} {{ leave.employee.last_name }}</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">{{ leave.employee.designation }}</div>
+                        </div>
+                    </td>
+                    <td style="padding: 14px 24px; font-size: 14px; font-weight: 600;">{{ leave.date|date:"D, M d, Y" }}</td>
+                    <td style="padding: 14px 24px;">
+                        <span style="font-size: 13px; font-weight: 600;">{{ leave.get_leave_type_display }}</span>
+                    </td>
+                    <td style="padding: 14px 24px;">
+                        <span style="font-size: 11px; font-weight: 700; color: {% if leave.is_paid %}var(--success){% else %}var(--text-muted){% endif %};">
+                            {% if leave.is_paid %}PAID LEAVE{% else %}UNPAID{% endif %}
+                        </span>
+                    </td>
+                    <td style="padding: 14px 24px; text-align: right;">
+                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                            <a href="{% url 'dashboard_approve_leave' leave.id %}" class="btn btn-primary" style="padding: 6px 14px; font-size: 12px; height: 32px; display: flex; align-items: center; gap: 6px;">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                Approve
+                            </a>
+                            <a href="{% url 'dashboard_reject_leave' leave.id %}" class="btn btn-outline" style="padding: 6px 14px; font-size: 12px; height: 32px; color: var(--danger); border-color: #FED7D7; display: flex; align-items: center; gap: 6px;">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                Reject
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" style="padding: 40px; text-align: center; color: var(--text-muted);">No pending leave requests.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- History -->
+    <div class="card" style="padding: 0;">
+        <div style="padding: 24px; border-bottom: 1px solid var(--border);">
+            <h3 style="font-size: 16px; font-weight: 700;">Processed History</h3>
+            <p style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Recent leave decisions</p>
+        </div>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="text-align: left; border-bottom: 1px solid var(--border);">
+                    <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Employee</th>
+                    <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Date</th>
+                    <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Status</th>
+                    <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Decision Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for leave in history_leaves %}
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 14px 24px; display: flex; align-items: center; gap: 12px;">
+                        <div class="avatar-circle" style="width: 32px; height: 32px; background: var(--bg);">{{ leave.employee.first_name|first|upper }}</div>
+                        <div style="font-weight: 600; font-size: 14px;">{{ leave.employee.first_name }} {{ leave.employee.last_name }}</div>
+                    </td>
+                    <td style="padding: 14px 24px; font-size: 14px;">{{ leave.date|date:"M d, Y" }}</td>
+                    <td style="padding: 14px 24px;">
+                        <span style="padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800;
+                            {% if leave.status == 'Approved' %} background: #DCFCE7; color: #166534;
+                            {% elif leave.status == 'Rejected' %} background: #FEE2E2; color: #DC2626;
+                            {% endif %}">
+                            {{ leave.status|upper }}
+                        </span>
+                    </td>
+                    <td style="padding: 14px 24px; font-size: 12px; color: var(--text-muted);">{{ leave.created_at|date:"M d, Y" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" style="padding: 40px; text-align: center; color: var(--text-muted);">No history found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

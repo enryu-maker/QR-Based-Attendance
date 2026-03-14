@@ -1,0 +1,90 @@
+{% extends 'core/dashboard_base.html' %}
+{% block dashboard_content %}
+<div style="display: grid; grid-template-columns: 1fr 340px; gap: 32px;" class="animate-fade">
+    
+    <!-- Asset List -->
+    <div class="card" style="padding: 0; display: flex; flex-direction: column;">
+        <div style="padding: 24px; border-bottom: 1px solid var(--border);">
+            <h3 style="font-size: 16px; font-weight: 700;">Company Assets</h3>
+            <p style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Manage hardware and equipment inventory</p>
+        </div>
+        <div style="flex: 1; overflow-y: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #F8FAFC; border-bottom: 1px solid var(--border); text-align: left;">
+                        <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Asset Name</th>
+                        <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">ID / Serial</th>
+                        <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Assigned To</th>
+                        <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for asset in assets %}
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 14px 24px;">
+                            <div style="font-weight: 700; font-size: 14px;">{{ asset.name }}</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">Added {{ asset.purchase_date|default:'Recently' }}</div>
+                        </td>
+                        <td style="padding: 14px 24px;">
+                            <code style="background: #F1F5F9; padding: 2px 6px; border-radius: 4px; font-size: 12px;">{{ asset.asset_id }}</code>
+                        </td>
+                        <td style="padding: 14px 24px;">
+                            {% if asset.assigned_to %}
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div class="avatar-circle" style="width: 24px; height: 24px; font-size: 10px;">{{ asset.assigned_to.first_name|first }}</div>
+                                    <span style="font-size: 13px; font-weight: 600;">{{ asset.assigned_to.first_name }}</span>
+                                </div>
+                            {% else %}
+                                <span style="color: var(--text-muted); font-size: 12px;">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 14px 24px;">
+                            <span style="padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800;
+                                {% if asset.status == 'Available' %} background: #DCFCE7; color: #166534;
+                                {% elif asset.status == 'Maintenance' %} background: #FEF3C7; color: #92400E;
+                                {% else %} background: #EFF6FF; color: #2563EB; {% endif %}">
+                                {{ asset.status|upper }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" style="padding: 40px; text-align: center; color: var(--text-muted);">No assets in inventory.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add Asset Form -->
+    <div class="card">
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 24px;">Register New Asset</h3>
+        <form method="POST">
+            {% csrf_token %}
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Asset Name</label>
+                <input type="text" name="name" placeholder="MacBook Pro, Monitor, etc." required style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; background: #F8FAFC;">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Serial Number / Tag</label>
+                <input type="text" name="asset_id" placeholder="AST-1001" required style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; background: #F8FAFC;">
+            </div>
+
+            <div style="margin-bottom: 24px;">
+                <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Assign to Employee</label>
+                <select name="assigned_to" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; background: #F8FAFC;">
+                    <option value="">Keep Available</option>
+                    {% for emp in employees %}
+                        <option value="{{ emp.id }}">{{ emp.first_name }} {{ emp.last_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; height: 50px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                Add to Inventory
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

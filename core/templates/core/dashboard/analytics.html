@@ -1,110 +1,226 @@
 {% extends 'core/dashboard_base.html' %}
 {% block dashboard_content %}
-
-<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 24px;" class="animate-fade">
-    <div class="card">
-        <div style="color: var(--text-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">Total Punches (30d)</div>
-        <div id="stat-total-punches" style="font-size: 24px; font-weight: 800;">0</div>
-    </div>
-    
-    <div class="card">
-        <div style="color: var(--text-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">Avg. Daily Presence</div>
-        <div id="stat-avg-presence" style="font-size: 24px; font-weight: 800; color: var(--primary);">0</div>
-    </div>
-    
-    <div class="card">
-        <div style="color: var(--text-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">Late Ratio</div>
-        <div id="stat-late-ratio" style="font-size: 24px; font-weight: 800; color: var(--danger);">0%</div>
-    </div>
-    
-    <div class="card">
-        <div style="color: var(--text-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">Peak Performance Day</div>
-        <div id="stat-peak-day" style="font-size: 16px; font-weight: 700; color: var(--success); margin-top: 4px;">--</div>
-    </div>
-</div>
-
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;" class="animate-fade">
-    <div class="card">
-        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 20px;">Daily Presence Breakdown</h3>
-        <div style="height: 300px;">
-            <canvas id="presenceChart"></canvas>
-        </div>
-    </div>
-    
-    <div class="card">
-        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 20px;">Lateness Trends</h3>
-        <div style="height: 300px;">
-            <canvas id="lateChart"></canvas>
-        </div>
-    </div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    const presenceData = {{ presence_data|safe }};
-    const lateData = {{ late_data|safe }};
 
-    const totalPunches = presenceData.reduce((acc, curr) => acc + curr.count, 0);
-    const avgPresence = presenceData.length > 0 ? (totalPunches / presenceData.length).toFixed(1) : 0;
-    const totalLate = lateData.reduce((acc, curr) => acc + curr.count, 0);
-    const lateRatio = totalPunches > 0 ? ((totalLate / totalPunches) * 100).toFixed(1) : 0;
-    
-    let peakDay = "--";
-    if(presenceData.length > 0) {
-        const sorted = [...presenceData].sort((a,b) => b.count - a.count);
-        peakDay = new Date(sorted[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+<style>
+    .analytics-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 24px;
+        margin-bottom: 24px;
     }
 
-    document.getElementById('stat-total-punches').innerText = totalPunches;
-    document.getElementById('stat-avg-presence').innerText = avgPresence;
-    document.getElementById('stat-late-ratio').innerText = lateRatio + '%';
-    document.getElementById('stat-peak-day').innerText = peakDay;
+    .stat-label {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 8px;
+    }
 
-    // Simple Bar Chart
-    new Chart(document.getElementById('presenceChart'), {
-        type: 'bar',
+    .stat-value {
+        font-size: 28px;
+        font-weight: 800;
+        color: var(--text-main);
+    }
+
+    .stat-change {
+        font-size: 12px;
+        margin-top: 8px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .grid-charts {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .chart-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-main);
+    }
+
+    .badge-premium {
+        background: var(--primary-light);
+        color: var(--primary);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+    }
+</style>
+
+<div class="animate-fade">
+    <div style="margin-bottom: 24px;">
+        <h2 style="font-size: 24px; font-weight: 800;">Enterprise Insights</h2>
+        <p style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">Comprehensive view of your organization's performance.</p>
+    </div>
+
+    <!-- Top Stats -->
+    <div class="analytics-grid">
+        <div class="card">
+            <div class="stat-label">Total Force</div>
+            <div class="stat-value">{{ stats.total_employees }}</div>
+            <div class="stat-change" style="color: #10B981;">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7 7 7M5 14l7 7 7-7"/></svg>
+                Registered Staff
+            </div>
+        </div>
+        <div class="card">
+            <div class="stat-label">Active Today</div>
+            <div class="stat-value">{{ stats.active_today }}</div>
+            <div class="stat-change" style="color: var(--primary);">
+                Live Attendance Feed
+            </div>
+        </div>
+        <div class="card">
+            <div class="stat-label">Attendance Rate</div>
+            <div class="stat-value">{{ stats.attendance_rate }}%</div>
+            <div style="width: 100%; height: 6px; background: #eee; border-radius: 3px; margin-top: 12px; overflow: hidden;">
+                <div style="width: {{ stats.attendance_rate }}%; height: 100%; background: var(--primary); border-radius: 3px;"></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="stat-label">Late Arrivals</div>
+            <div class="stat-value">{{ stats.late_today }}</div>
+            <div class="stat-change" style="color: #EF4444;">
+                Requires Attention
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid-charts">
+        <div class="card">
+            <div class="chart-header">
+                <div class="chart-title">Attendance Velocity</div>
+                <div class="badge-premium">Last 7 Days</div>
+            </div>
+            <div style="height: 300px;">
+                <canvas id="velocityChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="chart-header">
+                <div class="chart-title">Team Structure</div>
+            </div>
+            <div style="height: 300px;">
+                <canvas id="structureChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="chart-header" style="margin-bottom: 8px;">
+            <div class="chart-title" style="font-size: 18px;">Projected Monthly Expenditure</div>
+            <div style="font-size: 24px; font-weight: 800; color: #10B981;">${{ stats.total_salary }}</div>
+        </div>
+        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 0;">Estimated total monthly payroll based on current employee monthly base salaries.</p>
+    </div>
+</div>
+
+<script>
+    // Velocity Chart
+    const ctxVelocity = document.getElementById('velocityChart').getContext('2d');
+    new Chart(ctxVelocity, {
+        type: 'line',
         data: {
-            labels: presenceData.map(d => d.date),
+            labels: {{ charts.trend_labels|safe }},
             datasets: [{
-                label: 'Punches',
-                data: presenceData.map(d => d.count),
-                backgroundColor: '#2563EB',
-                borderRadius: 4,
+                label: 'Total Presence',
+                data: {{ charts.trend_data|safe }},
+                borderColor: '#2563EB',
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                fill: true,
+                tension: 0.4,
+                borderWidth: 3,
+                pointRadius: 4,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: '#2563EB',
+                pointBorderWidth: 2
+            }, {
+                label: 'Late Trends',
+                data: {{ charts.late_trend_data|safe }},
+                borderColor: '#EF4444',
+                borderDash: [5, 5],
+                tension: 0.4,
+                fill: false,
+                borderWidth: 2,
+                pointRadius: 0
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: { size: 12, weight: 600 }
+                    }
+                }
+            },
             scales: {
-                y: { beginAtZero: true, grid: { color: '#F1F5F9' }, ticks: { font: { weight: '600' } } },
-                x: { grid: { display: false }, ticks: { font: { weight: '600' } } }
+                y: {
+                    beginAtZero: true,
+                    grid: { borderDash: [5, 5], color: '#f0f0f0' },
+                    ticks: { font: { weight: 600 } }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { weight: 600 } }
+                }
             }
         }
     });
 
-    // Simple Line Chart
-    new Chart(document.getElementById('lateChart'), {
-        type: 'line',
+    // Structure Chart
+    const ctxStructure = document.getElementById('structureChart').getContext('2d');
+    new Chart(ctxStructure, {
+        type: 'doughnut',
         data: {
-            labels: lateData.map(d => d.date),
+            labels: {{ charts.designation_labels|safe }},
             datasets: [{
-                label: 'Late',
-                data: lateData.map(d => d.count),
-                borderColor: '#EF4444',
-                borderWidth: 2,
-                pointRadius: 3,
-                tension: 0,
-                fill: false
+                data: {{ charts.designation_data|safe }},
+                backgroundColor: [
+                    '#2563EB',
+                    '#10B981',
+                    '#F59E0B',
+                    '#EF4444',
+                    '#8B5CF6'
+                ],
+                borderWidth: 0,
+                cutout: '75%'
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, grid: { color: '#F1F5F9' }, ticks: { font: { weight: '600' } } },
-                x: { grid: { display: false }, ticks: { font: { weight: '600' } } }
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: { weight: 600 }
+                    }
+                }
             }
         }
     });

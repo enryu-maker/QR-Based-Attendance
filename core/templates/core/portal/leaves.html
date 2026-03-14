@@ -1,0 +1,105 @@
+{% extends 'core/portal/portal_base.html' %}
+{% block page_name %}Leaves & HR Management{% endblock %}
+{% block portal_content %}
+<div style="display: grid; grid-template-columns: 1fr 340px; gap: 32px;" class="animate-fade">
+    
+    <!-- Leave History -->
+    <div class="card" style="padding: 0; display: flex; flex-direction: column;">
+        <div style="padding: 24px; border-bottom: 1px solid var(--border);">
+            <h3 style="font-size: 16px; font-weight: 700;">Leave History</h3>
+            <p style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Track your submitted leave applications</p>
+        </div>
+        <div style="flex: 1; overflow-y: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #F8FAFC; border-bottom: 1px solid var(--border); text-align: left;">
+                        <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Date</th>
+                        <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Type</th>
+                        <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Status</th>
+                        <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Payment</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for leave in leaves %}
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 14px 24px;">
+                            <div style="font-weight: 700; font-size: 14px;">{{ leave.date|date:"D, M d" }}</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">{{ leave.date|date:"Y" }}</div>
+                        </td>
+                        <td style="padding: 14px 24px;">
+                            <span style="font-size: 13px; font-weight: 600;">{{ leave.get_leave_type_display }}</span>
+                        </td>
+                        <td style="padding: 14px 24px;">
+                            <span style="padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800;
+                                {% if leave.status == 'Approved' %} background: #DCFCE7; color: #166534;
+                                {% elif leave.status == 'Rejected' %} background: #FEE2E2; color: #DC2626;
+                                {% else %} background: #FEF3C7; color: #92400E; {% endif %}">
+                                {{ leave.status|upper }}
+                            </span>
+                        </td>
+                        <td style="padding: 14px 24px;">
+                            <span style="font-size: 12px; font-weight: 700; color: {% if leave.is_paid %}var(--success){% else %}var(--text-muted){% endif %};">
+                                {% if leave.is_paid %}PAID{% else %}UNPAID{% endif %}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" style="padding: 60px; text-align: center;">
+                            <div style="font-weight: 700; color: var(--text-muted);">No leave applications found</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Application Form -->
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+        <div class="card">
+            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 24px;">Apply for Leave</h3>
+            <form method="POST">
+                {% csrf_token %}
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Leave Date</label>
+                    <input type="date" name="date" required style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; background: #F8FAFC;">
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Leave Type</label>
+                    <select name="leave_type" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; background: #F8FAFC;">
+                        <option value="Planned">Planned Vacation</option>
+                        <option value="Sick">Sick Leave</option>
+                        <option value="Casual">Casual Leave</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Salary Component</label>
+                    <select name="is_paid" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; background: #F8FAFC;">
+                        <option value="true">Request Paid Leave</option>
+                        <option value="false">Request Unpaid Leave</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">Reason</label>
+                    <textarea name="reason" placeholder="Briefly explain the reason..." style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; background: #F8FAFC; height: 100px; resize: none;"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; height: 50px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                    Submit Application
+                </button>
+            </form>
+        </div>
+
+        <div class="card" style="background: var(--primary-light); border-color: var(--primary); padding: 20px;">
+            <h4 style="font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 8px;">HR Policy Note</h4>
+            <p style="font-size: 12px; color: var(--text-main); line-height: 1.6; font-weight: 500;">Please submit leave requests at least 48 hours in advance for planned vacations. Sick leaves can be submitted on the day of occurrence.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

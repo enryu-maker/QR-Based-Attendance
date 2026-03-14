@@ -3,7 +3,10 @@
 <div style="max-width: 800px; margin: 0 auto;" class="animate-fade">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px;">
         <h2 style="font-size: 24px; font-weight: 700;">New Employee Registration</h2>
-        <a href="{% url 'dashboard_employees' %}" class="btn btn-outline">Back to List</a>
+        <a href="{% url 'dashboard_employees' %}" class="btn btn-outline" style="display: flex; align-items: center; gap: 8px;">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            Back to List
+        </a>
     </div>
 
     <form method="POST">
@@ -35,16 +38,50 @@
         </div>
 
         <div class="card" style="margin-bottom: 32px;">
-            <h3 style="font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 24px;">Employment Details</h3>
+            <h3 style="font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 24px;">Employment & Payroll Details</h3>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div>
                     <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 8px;">Designation</label>
-                    <input type="text" name="designation" required style="width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none;">
+                    <input type="text" name="designation" placeholder="Software Engineer" required style="width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none;">
                 </div>
                 <div>
-                    <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 8px;">Monthly Salary (₹)</label>
+                    <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 8px;">Joining Date</label>
+                    <input type="date" name="joining_date" value="{% now 'Y-m-d' %}" required style="width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 8px;">Basic Monthly Salary ({{ company.currency_symbol }})</label>
                     <input type="number" step="0.01" name="monthly_salary" value="30000" required style="width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none;">
                 </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 8px;">HRA ({{ company.currency_symbol }})</label>
+                    <input type="number" step="0.01" name="hra" value="0" style="width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 8px;">Travel Allowance ({{ company.currency_symbol }})</label>
+                    <input type="number" step="0.01" name="travel_allowance" value="0" style="width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 8px;">Special Allowance ({{ company.currency_symbol }})</label>
+                    <input type="number" step="0.01" name="special_allowance" value="0" style="width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none;">
+                </div>
+            </div>
+
+            <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border); display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 8px; color: var(--danger);">PF Deduction ({{ company.currency_symbol }})</label>
+                    <input type="number" step="0.01" name="pf_deduction" value="0" style="width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 8px; color: var(--danger);">ESI Deduction ({{ company.currency_symbol }})</label>
+                    <input type="number" step="0.01" name="esi_deduction" value="0" style="width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 8px; color: var(--danger);">Professional Tax ({{ company.currency_symbol }})</label>
+                    <input type="number" step="0.01" name="professional_tax" value="0" style="width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none;">
+                </div>
+            </div>
+
+            <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border); display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div>
                     <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 8px;">Shift Start</label>
                     <input type="time" name="shift_start" value="09:00" required style="width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none;">
@@ -56,7 +93,10 @@
             </div>
         </div>
 
-        <button type="submit" class="btn btn-primary" style="width: 100%; height: 54px; font-size: 16px;">Create Employee Account</button>
+        <button type="submit" class="btn btn-primary" style="width: 100%; height: 54px; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+            Create Employee Account
+        </button>
     </form>
 </div>
 {% endblock %}

@@ -1,0 +1,60 @@
+{% extends 'core/dashboard_base.html' %}
+{% block dashboard_content %}
+<div class="animate-fade">
+    <div style="margin-bottom: 32px;">
+        <h2 style="font-size: 24px; font-weight: 700;">Employee Document Vault</h2>
+        <p style="font-size: 14px; color: var(--text-muted);">Verify and manage official staff documentation</p>
+    </div>
+
+    <!-- Documents List -->
+    <div class="card" style="padding: 0;">
+        <div style="padding: 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 style="font-size: 16px; font-weight: 700;">Recent Uploads</h3>
+                <p style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Review documents submitted for onboarding and verification</p>
+            </div>
+        </div>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="text-align: left; border-bottom: 1px solid var(--border); background: #F8FAFC;">
+                    <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Employee</th>
+                    <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Document Label</th>
+                    <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Type</th>
+                    <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Uploaded On</th>
+                    <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doc in documents %}
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 14px 24px; display: flex; align-items: center; gap: 12px;">
+                        <div class="avatar-circle" style="width: 32px; height: 32px; background: var(--bg);">{{ doc.employee.first_name|first|upper }}</div>
+                        <div>
+                            <div style="font-weight: 600; font-size: 14px;">{{ doc.employee.first_name }} {{ doc.employee.last_name }}</div>
+                            <div style="font-size: 11px; color: var(--primary); font-weight: 700;">{{ doc.employee.employee_id }}</div>
+                        </div>
+                    </td>
+                    <td style="padding: 14px 24px;">
+                        <div style="font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                            {{ doc.name }}
+                        </div>
+                    </td>
+                    <td style="padding: 14px 24px;">
+                        <span style="font-size: 11px; font-weight: 800; color: var(--primary); background: var(--primary-light); padding: 4px 10px; border-radius: 6px;">
+                            {{ doc.get_doc_type_display|upper }}
+                        </span>
+                    </td>
+                    <td style="padding: 14px 24px; font-size: 13px; color: var(--text-muted);">{{ doc.uploaded_at|date:"M d, Y" }}</td>
+                    <td style="padding: 14px 24px; text-align: right;">
+                        <a href="{{ doc.file.url }}" target="_blank" class="btn btn-outline" style="padding: 6px 14px; font-size: 12px; height: 32px;">Download / View</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" style="padding: 40px; text-align: center; color: var(--text-muted);">No documents found in the vault.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

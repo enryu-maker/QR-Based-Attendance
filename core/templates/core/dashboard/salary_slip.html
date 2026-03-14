@@ -102,11 +102,11 @@
             <tbody>
                 <tr>
                     <td>Monthly Base Salary</td>
-                    <td class="td-right">₹{{ employee.monthly_salary }}</td>
+                    <td class="td-right">{{ company.currency_symbol }}{{ employee.monthly_salary }}</td>
                 </tr>
                 <tr class="total-row">
                     <td>Net Calculated Wages</td>
-                    <td class="td-right">₹{{ salary|floatformat:2 }}</td>
+                    <td class="td-right">{{ company.currency_symbol }}{{ salary|floatformat:2 }}</td>
                 </tr>
             </tbody>
         </table>
