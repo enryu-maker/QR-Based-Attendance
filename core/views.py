@@ -14,6 +14,63 @@ import base64
 from io import BytesIO
 from django.utils import timezone
 
+def get_payroll_stats(emp, year, month, company):
+    _, total_days = calendar.monthrange(year, month)
+    
+    # Sundays and Holidays
+    free_dates = set()
+    for day in range(1, total_days + 1):
+        if datetime(year, month, day).weekday() == 6: # Sunday only
+            free_dates.add(datetime(year, month, day).date())
+    
+    holidays = Holiday.objects.filter(
+        models.Q(company=company) | models.Q(company=None),
+        date__year=year, date__month=month
+    )
+    for h in holidays:
+        free_dates.add(h.date)
+
+    # Actual Presence (Valid IN punches)
+    # Using python list comprehension to handle DateTimeField -> date conversion reliably
+    valid_attendances = Attendance.objects.filter(
+        employee=emp, status='Valid', punch_type='IN',
+        timestamp__year=year, timestamp__month=month
+    )
+    valid_dates = set(a.timestamp.date() for a in valid_attendances)
+    
+    # Paid Leaves
+    paid_leave_dates = set(Absence.objects.filter(
+        employee=emp, date__year=year, date__month=month, is_paid=True
+    ).values_list('date', flat=True))
+    
+    # Unpaid Absences
+    unpaid_absence_dates = set(Absence.objects.filter(
+        employee=emp, date__year=year, date__month=month, is_paid=False
+    ).values_list('date', flat=True))
+    
+    # Total Payable Days: (Present OR Holiday/Sunday OR Paid Leave) MINUS Unpaid Absences
+    payable_dates = (valid_dates | free_dates | paid_leave_dates) - unpaid_absence_dates
+    payable_count = len(payable_dates)
+    
+    # Breakdown for UI/Slips
+    punched_working_days = len(valid_dates - free_dates - unpaid_absence_dates)
+    paid_free_days = len(free_dates - unpaid_absence_dates)
+    actual_paid_leaves = len(paid_leave_dates - valid_dates - free_dates - unpaid_absence_dates)
+    
+    salary = (float(emp.monthly_salary) / total_days) * payable_count if total_days > 0 else 0
+    
+    return {
+        'total_days': total_days,
+        'days_present': punched_working_days, 
+        'free_days': paid_free_days,
+        'paid_leaves': actual_paid_leaves,
+        'unpaid_absences': total_days - payable_count,
+        'payable_days': payable_count,
+        'salary': round(salary, 2),
+        'original_paid_leave_count': len(paid_leave_dates), # For backward compatibility in some views if needed
+        'original_unpaid_absence_count': len(unpaid_absence_dates)
+    }
+
 def check_punch_status(request, company_slug, employee_id):
     try:
         company = Company.objects.get(slug=company_slug)
@@ -204,42 +261,15 @@ def admin_dashboard(request):
     data = []
     
     for emp in employees:
-        valid_attendances = Attendance.objects.filter(
-            employee=emp,
-            status='Valid',
-            punch_type='IN',
-            timestamp__year=year,
-            timestamp__month=month
-        )
-        
-        valid_dates = set(a.timestamp.date() for a in valid_attendances)
-        days_present = len(valid_dates)
-        
-        absence_dates = set(Absence.objects.filter(
-            employee=emp,
-            date__year=year,
-            date__month=month,
-            is_paid=False
-        ).values_list('date', flat=True))
-        
-        paid_leave_count = Absence.objects.filter(
-            employee=emp,
-            date__year=year,
-            date__month=month,
-            is_paid=True
-        ).count()
-        
-        payable_dates = (valid_dates | free_dates) - absence_dates
-        payable_days = len(payable_dates)
-        
-        salary = (float(emp.monthly_salary) / total_days_in_month) * payable_days if total_days_in_month > 0 else 0
+        stats = get_payroll_stats(emp, year, month, company)
         
         data.append({
             'employee': emp,
-            'days_present': days_present,
-            'absences': len(absence_dates),
-            'paid_leaves': paid_leave_count,
-            'salary': round(salary, 2)
+            'days_present': stats['days_present'] + stats['paid_leaves'], # Showing "Authorized Days" or similar? No, let's stick to breakdown
+            'actual_present': stats['days_present'],
+            'absences': stats['unpaid_absences'],
+            'paid_leaves': stats['paid_leaves'],
+            'salary': stats['salary']
         })
         
     return render(request, 'core/dashboard/salary.html', {
@@ -263,36 +293,7 @@ def print_salary_slip(request, emp_id, month_str):
     except Employee.DoesNotExist:
         return redirect('dashboard_salary')
 
-    _, total_days_in_month = calendar.monthrange(year, month)
-    
-    free_dates = set()
-    for day in range(1, total_days_in_month + 1):
-        d = datetime(year, month, day).date()
-        if d.weekday() >= 5: # Saturday or Sunday
-            free_dates.add(d)
-            
-    holidays = Holiday.objects.filter(models.Q(company=company) | models.Q(company=None), date__year=year, date__month=month)
-    for h in holidays:
-        free_dates.add(h.date)
-
-    valid_attendances = Attendance.objects.filter(
-        employee=emp,
-        status='Valid',
-        punch_type='IN',
-        timestamp__year=year,
-        timestamp__month=month
-    )
-    
-    valid_dates = set(a.timestamp.date() for a in valid_attendances)
-    days_present = len(valid_dates)
-    
-    payable_dates = valid_dates | free_dates
-    payable_days = len(payable_dates)
-    absent_days = total_days_in_month - payable_days
-    
-    salary = (float(emp.monthly_salary) / total_days_in_month) * payable_days if total_days_in_month > 0 else 0
-    salary = round(salary, 2)
-    
+    stats = get_payroll_stats(emp, year, month, company)
     month_name = calendar.month_name[month]
     
     context = {
@@ -301,12 +302,13 @@ def print_salary_slip(request, emp_id, month_str):
         'year': year,
         'month': month_str,
         'month_name': month_name,
-        'total_days_in_month': total_days_in_month,
-        'days_present': days_present,
-        'free_days': len(free_dates),
-        'payable_days': payable_days,
-        'absent_days': absent_days,
-        'salary': salary,
+        'total_days_in_month': stats['total_days'],
+        'days_present': stats['days_present'],
+        'free_days': stats['free_days'],
+        'paid_leaves': stats['paid_leaves'],
+        'payable_days': stats['payable_days'],
+        'absent_days': stats['unpaid_absences'],
+        'salary': stats['salary'],
     }
     
     return render(request, 'core/dashboard/salary_slip.html', context)
@@ -435,55 +437,19 @@ def export_attendance(request):
     writer = csv.writer(response)
     writer.writerow(['Employee ID', 'Name', 'Designation', 'Email', 'Days Present', 'Paid Leaves', 'Unpaid Absences', 'Monthly Base', 'Calculated Salary'])
     
-    _, total_days_in_month = calendar.monthrange(year, month)
-    
-    free_dates = set()
-    for day in range(1, total_days_in_month + 1):
-        if datetime(year, month, day).weekday() == 6: # Sunday only
-            free_dates.add(datetime(year, month, day).date())
-            
-    holidays = Holiday.objects.filter(models.Q(company=company) | models.Q(company=None), date__year=year, date__month=month)
-    for h in holidays:
-        free_dates.add(h.date)
-    
     employees = Employee.objects.filter(company=company)
     for emp in employees:
-        valid_attendances = Attendance.objects.filter(
-            employee=emp,
-            status='Valid',
-            punch_type='IN',
-            timestamp__year=year,
-            timestamp__month=month
-        )
-        valid_dates = set(a.timestamp.date() for a in valid_attendances)
-        days_present = len(valid_dates)
-        
-        absence_dates = set(Absence.objects.filter(
-            employee=emp,
-            date__year=year,
-            date__month=month,
-            is_paid=False
-        ).values_list('date', flat=True))
-
-        paid_leave_count = Absence.objects.filter(
-            employee=emp,
-            date__year=year,
-            date__month=month,
-            is_paid=True
-        ).count()
-        
-        payable_days = len((valid_dates | free_dates) - absence_dates)
-        salary = (float(emp.monthly_salary) / total_days_in_month) * payable_days if total_days_in_month > 0 else 0
+        stats = get_payroll_stats(emp, year, month, company)
         
         writer.writerow([
             emp.employee_id,
             f"{emp.first_name} {emp.last_name}",
             emp.designation,
             emp.email,
-            days_present,
-            paid_leave_count,
-            len(absence_dates),
+            stats['days_present'],
+            stats['paid_leaves'],
+            stats['unpaid_absences'],
             emp.monthly_salary,
-            round(salary, 2)
+            stats['salary']
         ])
     return response
