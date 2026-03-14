@@ -1,63 +1,57 @@
 {% extends 'core/dashboard_base.html' %}
 {% block dashboard_content %}
-<div class="table-container">
-    <div class="title-bar">
+<div class="card animate-fade" style="padding: 0;">
+    <div style="padding: 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
         <div>
-            <h2 style="font-size: 20px; color: var(--text-main); margin-bottom: 4px;">Time & Attendance Live Feed</h2>
-            <div style="font-size: 13px; color: var(--text-muted);">Recent 50 attendance logs</div>
+            <h2 style="font-size: 16px; font-weight: 700;">Live Attendance Feed</h2>
+            <div style="font-size: 12px; color: var(--text-muted);">Real-time punch updates</div>
         </div>
-        <div>
-            <a href="{% url 'dashboard_qr' %}" class="btn btn-primary" style="margin-right:8px;">View Scanner QR</a>
-            <button class="btn btn-outline" onclick="window.location.reload();">Refresh Logs</button>
+        <div style="display: flex; gap: 8px;">
+            <a href="{% url 'dashboard_qr' %}" class="btn btn-primary">Scanner QR</a>
+            <button class="btn btn-outline" onclick="window.location.reload();">Refresh</button>
         </div>
     </div>
     
-    <table style="width: 100%;">
+    <table style="width: 100%; border-collapse: collapse;">
         <thead>
-            <tr>
-                <th style="padding: 18px 24px;">Employee Name</th>
-                <th>Employee ID</th>
-                <th>Punch Type</th>
-                <th>Timestamp</th>
-                <th>Distance (m)</th>
-                <th>Status</th>
+            <tr style="text-align: left; border-bottom: 1px solid var(--border);">
+                <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Employee</th>
+                <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">ID</th>
+                <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Type</th>
+                <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Timestamp</th>
+                <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Range</th>
+                <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Status</th>
             </tr>
         </thead>
         <tbody>
             {% for log in attendances %}
-            <tr style="transition: 0.2s;">
-                <td style="display: flex; align-items: center; gap: 14px; border-bottom: none;">
-                    <div class="avatar" style="width: 32px; height: 32px; font-size: 13px;">{{ log.employee.first_name|first|upper }}</div>
-                    <div style="font-weight: 700;">{{ log.employee.first_name }} {{ log.employee.last_name }}</div>
+            <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 14px 24px; display: flex; align-items: center; gap: 12px;">
+                    <div class="avatar-circle" style="width: 32px; height: 32px; background: #F1F5F9; border: none;">{{ log.employee.first_name|first|upper }}</div>
+                    <div style="font-weight: 600; font-size: 14px;">{{ log.employee.first_name }} {{ log.employee.last_name }}</div>
                 </td>
-                <td style="color:var(--text-muted);">{{ log.employee.employee_id }}</td>
-                <td>
+                <td style="padding: 14px 24px; font-size: 13px; color: var(--text-muted);">{{ log.employee.employee_id }}</td>
+                <td style="padding: 14px 24px;">
                     {% if log.punch_type == 'IN' %}
-                        <span style="color:var(--primary); font-weight:800; background:rgba(33, 150, 243, 0.1); padding: 4px 10px; border-radius: 8px;">PUNCH IN</span>
+                        <span style="font-size: 10px; font-weight: 700; color: var(--primary); background: var(--primary-light); padding: 4px 8px; border-radius: 4px;">PUNCH IN</span>
                     {% else %}
-                        <span style="color:var(--warning-text); font-weight:800; background:var(--warning-bg); padding: 4px 10px; border-radius: 8px;">PUNCH OUT</span>
+                        <span style="font-size: 10px; font-weight: 700; color: #92400E; background: #FEF3C7; padding: 4px 8px; border-radius: 4px;">PUNCH OUT</span>
                     {% endif %}
                 </td>
-                <td style="font-size: 13px; color: var(--text-main); font-weight:500;">
-                    {{ log.timestamp|date:"M d, Y - h:i A" }}
+                <td style="padding: 14px 24px; font-size: 13px;">{{ log.timestamp|date:"M d, Y - h:i A" }}</td>
+                <td style="padding: 14px 24px; font-size: 13px; color: var(--text-muted);">
+                    {% if log.distance_from_office != None %}{{ log.distance_from_office|floatformat:1 }}m{% else %}--{% endif %}
                 </td>
-                <td style="color: var(--text-muted);">
-                    {% if log.distance_from_office != None %}
-                        {{ log.distance_from_office|floatformat:2 }}m
-                    {% else %}
-                        --
-                    {% endif %}
-                </td>
-                <td>
+                <td style="padding: 14px 24px;">
                     {% if log.status == 'Valid' %}
-                        <span class="badge badge-success">Valid</span>
+                        <span style="padding: 4px 8px; border-radius: 4px; background: #DCFCE7; color: #166534; font-size: 10px; font-weight: 700;">VALID</span>
                     {% else %}
-                        <span class="badge badge-danger">Out of Range</span>
+                        <span style="padding: 4px 8px; border-radius: 4px; background: #FEE2E2; color: #991B1B; font-size: 10px; font-weight: 700;">OUT OF RANGE</span>
                     {% endif %}
                 </td>
             </tr>
             {% empty %}
-            <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding:30px;">No attendance logs found right now.</td></tr>
+            <tr><td colspan="6" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;">No records found.</td></tr>
             {% endfor %}
         </tbody>
     </table>

@@ -1,446 +1,122 @@
 {% extends 'core/dashboard_base.html' %}
 {% block dashboard_content %}
-<div class="qr-container">
-    <!-- Main Dashboard View Card -->
-    <div class="qr-card fade-in">
-        <div class="qr-card-header">
-            <div class="qr-icon-wrapper">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><rect x="7" y="7" width="3" height="3"></rect><rect x="14" y="7" width="3" height="3"></rect><rect x="7" y="14" width="3" height="3"></rect><rect x="14" y="14" width="3" height="3"></rect></svg>
-            </div>
-            <div>
-                <h2 class="qr-card-title">Attendance Entry Console</h2>
-                <p class="qr-card-subtitle">Active Scanner for {{ company.name }}</p>
-            </div>
-        </div>
-
-        <div class="qr-display-section">
-            <div class="qr-wrapper">
-                <img src="data:image/png;base64,{{ qr_image }}" alt="QR Code" class="qr-image">
-                <div class="qr-scanning-line"></div>
-            </div>
-            
-            <div class="qr-status-badge">
-                <span class="status-dot pulse"></span>
-                Live & Secure Entry
-            </div>
-        </div>
-
-        <div class="qr-info-grid">
-            <div class="info-item">
-                <span class="info-label">Current Company</span>
-                <span class="info-value">{{ company.name }}</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Security Protocol</span>
-                <span class="info-value">Geo-Fenced & Timed</span>
-            </div>
-        </div>
-
-        <div class="qr-actions">
-            <div class="entry-url-box">
-                <span class="url-label">Direct Link</span>
-                <code class="url-text">{{ url }}</code>
-            </div>
-            
-            <button class="print-trigger-btn" onclick="window.print()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 10px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                Print Professional Poster
-            </button>
-        </div>
-    </div>
-
-    <!-- Instructions / Benefits -->
-    <div class="instructions-panel fade-in" style="animation-delay: 0.1s;">
-        <h3 class="panel-title">Getting Started</h3>
-        <div class="step-list">
-            <div class="step-item">
-                <div class="step-number">01</div>
-                <div class="step-content">
-                    <p class="step-title">Place QR Strategically</p>
-                    <p class="step-desc">Mount the printed poster in a highly visible entry point within office premises.</p>
-                </div>
-            </div>
-            <div class="step-item">
-                <div class="step-number">02</div>
-                <div class="step-content">
-                    <p class="step-title">Verification</p>
-                    <p class="step-desc">Employees scan with any mobile browser. No app installation required.</p>
-                </div>
-            </div>
-            <div class="step-item">
-                <div class="step-number">03</div>
-                <div class="step-content">
-                    <p class="step-title">Geo-Fence Check</p>
-                    <p class="step-desc">The system automatically verifies they are within the allowed radius (~{{ first_office.max_distance_meters|default:100 }}m).</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Print Poster Template (Hidden on screen) -->
-<div class="print-poster-only">
-    <div class="poster-inner">
-        <div class="poster-header">
-            <div class="poster-logo-container">
-                <div class="poster-logo-icon">A</div>
-                <div class="poster-logo-text">AttendFlow<span>.</span></div>
-            </div>
-            <div class="poster-security-label">SECURE ENTRY POINT</div>
-        </div>
-
-        <div class="poster-body">
-            <h1 class="poster-title">Smart Attendance</h1>
-            <div class="poster-company-tag">{{ company.name|upper }}</div>
-            
-            <div class="poster-qr-wrapper-outer">
-                <div class="poster-qr-container">
-                    <div class="qr-frame-corner top-left"></div>
-                    <div class="qr-frame-corner top-right"></div>
-                    <div class="qr-frame-corner bottom-left"></div>
-                    <div class="qr-frame-corner bottom-right"></div>
-                    <img src="data:image/png;base64,{{ qr_image }}" alt="Attendance QR" class="poster-qr-img">
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<style>
-    /* Container Styles */
-    .qr-container {
-        display: grid;
-        grid-template-columns: 1fr 340px;
-        gap: 30px;
-        max-width: 1100px;
-        margin: 0 auto;
-    }
-
-    /* Professional Card Styling */
-    .qr-card {
-        background: var(--surface);
-        border-radius: 24px;
-        border: 1px solid var(--border);
-        padding: 40px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.03);
-    }
-
-    .qr-card-header {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-        margin-bottom: 40px;
-        border-bottom: 1px solid #F4F7FE;
-        padding-bottom: 24px;
-    }
-
-    .qr-icon-wrapper {
-        width: 54px;
-        height: 54px;
-        background: rgba(33, 150, 243, 0.1);
-        color: var(--primary);
-        border-radius: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .qr-card-title {
-        font-size: 22px;
-        font-weight: 800;
-        color: var(--text-main);
-        margin: 0;
-    }
-
-    .qr-card-subtitle {
-        font-size: 14px;
-        color: var(--text-muted);
-        margin-top: 4px;
-    }
-
-    /* QR Display Section */
-    .qr-display-section {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        margin-bottom: 40px;
-    }
-
-    .qr-wrapper {
-        position: relative;
-        padding: 30px;
-        background: white;
-        border-radius: 28px;
-        border: 2px solid #F4F7FE;
-        box-shadow: 0 20px 60px rgba(33, 150, 243, 0.08);
-        overflow: hidden;
-    }
-
-    .qr-image {
-        width: 240px;
-        height: 240px;
-        display: block;
-        border-radius: 12px;
-    }
-
-    .qr-scanning-line {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, var(--primary), transparent);
-        box-shadow: 0 0 15px var(--primary);
-        animation: scan 4s linear infinite;
-        z-index: 1;
-    }
-
-    @keyframes scan {
-        0% { top: 0%; opacity: 0; }
-        10% { opacity: 1; }
-        90% { opacity: 1; }
-        100% { top: 100%; opacity: 0; }
-    }
-
-    .qr-status-badge {
-        margin-top: 24px;
-        background: #F4F7FE;
-        padding: 8px 16px;
-        border-radius: 20px;
-        font-size: 13px;
-        font-weight: 700;
-        color: var(--text-main);
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .status-dot {
-        width: 8px;
-        height: 8px;
-        background: #05CD99;
-        border-radius: 50%;
-    }
-
-    .pulse {
-        box-shadow: 0 0 0 0 rgba(5, 205, 153, 0.7);
-        animation: pulseing 2s infinite cubic-bezier(0.66, 0, 0, 1);
-    }
-
-    @keyframes pulseing {
-        to { box-shadow: 0 0 0 10px rgba(5, 205, 153, 0); }
-    }
-
-    /* Info Grid */
-    .qr-info-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-        background: #FAFCFF;
-        border-radius: 20px;
-        padding: 24px;
-        margin-bottom: 30px;
-    }
-
-    .info-item {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .info-label {
-        font-size: 11px;
-        text-transform: uppercase;
-        color: var(--text-muted);
-        letter-spacing: 0.5px;
-        font-weight: 700;
-        margin-bottom: 4px;
-    }
-
-    .info-value {
-        font-size: 15px;
-        font-weight: 700;
-        color: var(--text-main);
-    }
-
-    /* Action Section */
-    .qr-actions {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-    }
-
-    .entry-url-box {
-        background: white;
-        border: 1px dashed var(--border);
-        border-radius: 12px;
-        padding: 12px 16px;
-    }
-
-    .url-label {
-        display: block;
-        font-size: 10px;
-        color: var(--text-muted);
-        font-weight: 700;
-        margin-bottom: 4px;
-    }
-
-    .url-text {
-        font-size: 13px;
-        color: var(--primary);
-        word-break: break-all;
-        font-family: inherit;
-        font-weight: 600;
-    }
-
-    .print-trigger-btn {
-        background: var(--primary);
-        color: white;
-        border: none;
-        padding: 18px;
-        border-radius: 16px;
-        font-weight: 700;
-        font-size: 16px;
-        cursor: pointer;
-        transition: 0.3s;
-        box-shadow: 0 10px 20px rgba(33, 150, 243, 0.2);
-    }
-
-    .print-trigger-btn:hover {
-        background: var(--primary-hover);
-        transform: translateY(-2px);
-        box-shadow: 0 15px 30px rgba(33, 150, 243, 0.3);
-    }
-
-    /* Instructions Panel */
-    .instructions-panel {
-        background: #111C44;
-        border-radius: 24px;
-        padding: 34px;
-        color: white;
-        height: fit-content;
-    }
-
-    .panel-title {
-        font-size: 18px;
-        font-weight: 800;
-        margin-bottom: 30px;
-        color: white;
-    }
-
-    .step-list { display: flex; flex-direction: column; gap: 20px; }
-    .step-item { display: flex; gap: 16px; }
-    .step-number { font-size: 18px; font-weight: 900; color: rgba(255,255,255,0.2); }
-    .step-title { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
-    .step-desc { font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.5; }
-
-    /* Animations */
-    .fade-in {
-        animation: fadeIn 0.8s ease-out forwards;
-        opacity: 0;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Advanced Print Styling */
-    .print-poster-only { display: none; }
-
-    @media print {
-        @page { size: A4 portrait; margin: 0; }
-        body * { visibility: hidden; }
-        .print-poster-only, .print-poster-only * { visibility: visible; }
-        .print-poster-only {
-            display: block !important;
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 210mm;
-            height: 297mm;
-            background: white !important;
-            color: #0A0A0A;
-            z-index: 9999;
-            padding: 10mm;
-            box-sizing: border-box;
-        }
-
-        .poster-inner {
-            height: 100%;
-            border: 8mm solid #0A0A0A;
-            padding: 15mm;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            box-sizing: border-box;
-        }
-
-        .poster-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2mm solid #0A0A0A;
-            padding-bottom: 8mm;
-        }
-
-        .poster-logo-container { display: flex; align-items: center; gap: 5mm; }
-        .poster-logo-icon {
-            width: 15mm;
-            height: 15mm;
-            background: #0A0A0A;
-            color: white;
-            font-size: 10mm;
-            font-weight: 900;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 3mm;
-        }
-        .poster-logo-text { font-size: 10mm; font-weight: 800; }
-        .poster-logo-text span { color: #2196F3; }
-        .poster-security-label {
-            font-size: 4mm;
-            font-weight: 900;
-            letter-spacing: 1.5mm;
-            border: 1mm solid #0A0A0A;
-            padding: 2mm 5mm;
-        }
-
-        .poster-body { text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 10mm 0; }
-        .poster-title { font-size: 20mm; font-weight: 900; margin-bottom: 2mm; color: #0A0A0A; }
-        .poster-company-tag {
-            font-size: 8mm;
-            font-weight: 700;
-            color: #2196F3;
-            letter-spacing: 1mm;
-            margin-bottom: 10mm;
-        }
-
-        .poster-qr-wrapper-outer {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 10mm;
-        }
-
-        .poster-qr-container {
-            position: relative;
-            padding: 10mm;
-            display: inline-block;
-        }
+<div style="max-width: 800px; margin: 0 auto;" class="animate-fade">
+    <div style="display: grid; grid-template-columns: 1fr 300px; gap: 40px; align-items: start;">
         
-        .poster-qr-img { width: 90mm; height: 90mm; display: block;}
+        <!-- QR Display Section -->
+        <div class="card" style="padding: 0; overflow: hidden; border: 1px solid var(--border);">
+            <div style="padding: 24px; border-bottom: 1px solid var(--border); background: #F8FAFC;">
+                <h2 style="font-size: 18px; font-weight: 800; margin-bottom: 4px;">Dynamic Entry Key</h2>
+                <p style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Secure authorization token for office entrance.</p>
+            </div>
+            
+            <div style="padding: 60px; text-align: center; background: white;">
+                <!-- QR Container with frame -->
+                <div id="printable-qr">
+                    <div class="sticker-box" style="padding: 40px; border: 4px solid #000; display: inline-block; border-radius: 24px; background: white;">
+                        <div style="font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 24px; color: #000;">
+                            Scan Point: {{ company.name }}
+                        </div>
+                        
+                        <div style="background: white; padding: 10px; border: 1px solid #eee; border-radius: 12px; display: inline-block;">
+                            <img src="data:image/png;base64,{{ qr_image }}" alt="Entrance QR" style="display: block; width: 240px; height: 240px;">
+                        </div>
+                        
+                        <div style="margin-top: 24px;">
+                            <div style="font-size: 11px; font-weight: 700; color: #666; text-transform: uppercase;">Powered by AttendOS Intelligence</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        .qr-frame-corner {
-            position: absolute;
-            width: 15mm;
-            height: 15mm;
-            border: 3mm solid #0A0A0A;
-        }
-        .top-left { top: 0; left: 0; border-right: 0; border-bottom: 0; }
-        .top-right { top: 0; right: 0; border-left: 0; border-bottom: 0; }
-        .bottom-left { bottom: 0; left: 0; border-right: 0; border-top: 0; }
-        .bottom-right { bottom: 0; right: 0; border-left: 0; border-top: 0; }
+            <div style="padding: 24px; border-top: 1px solid var(--border); display: flex; gap: 12px; background: #F8FAFC;">
+                <button onclick="printSticker()" class="btn btn-primary" style="flex: 1;">Print Gate Sticker</button>
+                <button onclick="window.location.reload()" class="btn btn-outline" style="flex: 1;">Regenerate Token</button>
+            </div>
+        </div>
 
+        <!-- Instructions / Info Section -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+            <div class="card" style="padding: 24px;">
+                <h3 style="font-size: 13px; font-weight: 800; color: var(--text-main); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;">How it works</h3>
+                <ul style="list-style: none; padding: 0;">
+                    <li style="display: flex; gap: 12px; margin-bottom: 20px;">
+                        <div style="width: 24px; height: 24px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0;">1</div>
+                        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">Print and display this QR at office entry points.</p>
+                    </li>
+                    <li style="display: flex; gap: 12px; margin-bottom: 20px;">
+                        <div style="width: 24px; height: 24px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0;">2</div>
+                        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">Employees scan using their mobile browser.</p>
+                    </li>
+                    <li style="display: flex; gap: 12px;">
+                        <div style="width: 24px; height: 24px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0;">3</div>
+                        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">Our system verifies GPS and token validity instantly.</p>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="card" style="padding: 24px; background: var(--primary); color: white; border: none;">
+                <h3 style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8; margin-bottom: 12px;">Deployment Tip</h3>
+                <p style="font-size: 13px; font-weight: 500; line-height: 1.6;">For maximum security, regenerate this token every month or when office locations are updated.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function printSticker() {
+        const qrContent = document.querySelector('.sticker-box').outerHTML;
+        const printWindow = window.open('', '_blank', 'height=600,width=800');
+        
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>AttendOS Gate Sticker</title>
+                    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+                    <style>
+                        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+                        body { 
+                            display: flex; 
+                            align-items: center; 
+                            justify-content: center; 
+                            min-height: 100vh; 
+                            background: white; 
+                        }
+                        .sticker-box {
+                            border: 8px solid #000 !important;
+                            border-radius: 40px !important;
+                            padding: 60px !important;
+                            text-align: center !important;
+                            width: 500px !important;
+                            background: white !important;
+                            display: flex !important;
+                            flex-direction: column !important;
+                            align-items: center !important;
+                        }
+                        .sticker-box img {
+                            width: 350px !important;
+                            height: 350px !important;
+                            margin: 20px 0 !important;
+                        }
+                        .sticker-box div {
+                            color: black !important;
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${qrContent}
+                    <script>
+                        window.onload = function() {
+                            setTimeout(() => {
+                                window.print();
+                                window.close();
+                            }, 500);
+                        };
+                    <\/script>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
     }
-</style>
+</script>
 {% endblock %}

@@ -3,107 +3,345 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AttendFlow - Master Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>AttendOS - Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #F4F7FE;
+            --bg: #F8FAFC;
             --surface: #FFFFFF;
-            --primary: #2196F3;
-            --primary-hover: #1976D2;
-            --text-main: #2B3674;
-            --text-muted: #A3AED0;
-            --border: #E0E5F2;
-            --success-bg: #E8FFF3;
-            --success-text: #05CD99;
-            --danger-bg: #FFEBEB;
-            --danger-text: #EE5D50;
-            --warning-bg: #FFF5E5;
-            --warning-text: #FF9800;
+            --primary: #2563EB;
+            --primary-light: #EFF6FF;
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+            --sidebar-width: 260px;
+            --success: #10B981;
+            --danger: #EF4444;
+            --radius: 12px;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Public Sans', sans-serif; }
-        body { background: var(--bg); display: flex; height: 100vh; overflow: hidden; color: var(--text-main); }
-        .sidebar { width: 280px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-        .sidebar-header { padding: 30px; font-size: 24px; font-weight: 700; color: #0A0A0A; display: flex; align-items: center; gap: 12px; }
-        .sidebar-menu { flex: 1; padding: 10px 0; overflow-y: auto; }
-        .menu-section { padding: 24px 30px 10px; font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
-        a.menu-item { display: flex; align-items: center; padding: 16px 30px; color: var(--text-muted); text-decoration: none; font-weight: 600; font-size: 15px; transition: 0.2s; position: relative; }
-        a.menu-item:hover, a.menu-item.active { background: #F4F7FE; color: var(--primary); }
-        a.menu-item.active::after { content: ''; position: absolute; right: 0; top: 0; height: 100%; width: 4px; background: var(--primary); border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
-        
-        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .topbar { height: 90px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 40px; }
-        .search-bar { background: #F4F7FE; border-radius: 30px; padding: 12px 24px; display: flex; align-items: center; width: 350px; }
-        .search-bar input { border: none; background: transparent; outline: none; margin-left: 10px; color: var(--text-main); font-size: 15px; width: 100%; }
-        
-        .content-area { flex: 1; padding: 30px 40px; overflow-y: auto; }
-        
-        .btn { padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: 0.2s; border: none; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none;}
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3); }
-        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
-        .btn-outline:hover { background: #F4F7FE; color: var(--primary); border-color: var(--primary); }
-        
-        .table-container { background: var(--surface); border-radius: 20px; border: 1px solid var(--border); overflow: hidden; width: 100%; }
-        table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 18px 24px; color: var(--text-muted); font-size: 13px; font-weight: 700; border-bottom: 1px solid var(--border); text-transform: uppercase; background: #FAFCFF; }
-        td { padding: 18px 24px; font-size: 14px; font-weight: 600; border-bottom: 1px solid var(--border); color: var(--text-main); }
-        tr:last-child td { border-bottom: none; }
-        tbody tr:hover { background: #FAFCFF; }
-        
-        .badge { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; display: inline-block; }
-        .badge-success { background: var(--success-bg); color: var(--success-text); }
-        .badge-danger { background: var(--danger-bg); color: var(--danger-text); }
-        .badge-warning { background: var(--warning-bg); color: var(--warning-text); }
-        
-        .split-layout { display: flex; gap: 30px; height: 100%; }
-        .split-list { flex: 7; display: flex; flex-direction: column; background: var(--surface); border-radius: 20px; border: 1px solid var(--border); overflow: hidden; min-height: 500px;}
-        .split-detail { flex: 3; background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 30px; display: flex; flex-direction: column;}
-        
-        .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; flex-shrink: 0; }
-        .title-bar { padding: 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); background: var(--surface); }
-        
-        input[type="text"], input[type="number"], input[type="month"] { width: 100%; padding: 12px 18px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px; margin-bottom: 16px; color: var(--text-main); outline: none;}
-        input:focus { border-color: var(--primary); }
-        label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Poppins', sans-serif; 
+        }
+
+        body { 
+            background: var(--bg);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Simple Sidebar */
+        .sidebar { 
+            width: var(--sidebar-width);
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+        }
+
+        .sidebar-header { 
+            padding: 32px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo-box {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 800;
+            font-size: 18px;
+        }
+
+        .sidebar-menu { 
+            flex: 1; 
+            padding: 24px 16px; 
+            overflow-y: auto; 
+        }
+
+        .menu-section { 
+            padding: 0 12px 12px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        a.menu-item { 
+            display: flex;
+            align-items: center;
+            padding: 12px 12px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            border-radius: 8px;
+            margin-bottom: 4px;
+            gap: 12px;
+            transition: all 0.2s;
+        }
+
+        a.menu-item svg { 
+            width: 20px; 
+            height: 20px; 
+            stroke-width: 2;
+        }
+
+        a.menu-item:hover { 
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        a.menu-item.active { 
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .main-content { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+        }
+
+        /* Simple Topbar */
+        .topbar { 
+            height: 72px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+        }
+
+        .breadcrumb {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .breadcrumb .path { 
+            font-size: 12px; 
+            color: var(--text-muted); 
+            font-weight: 500; 
+        }
+
+        .breadcrumb .page-name { 
+            font-size: 18px; 
+            font-weight: 700; 
+            color: var(--text-main); 
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .search-box {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-muted);
+            width: 240px;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            border: 1px solid var(--border);
+        }
+
+        /* Simple Cards */
+        .card { 
+            background: var(--surface);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            padding: 24px;
+        }
+
+        .content-area { 
+            flex: 1; 
+            padding: 32px 40px; 
+            overflow-y: auto; 
+        }
+
+        /* Buttons */
+        .btn { 
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+            text-decoration: none !important;
+        }
+
+        .btn-primary { 
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover { 
+            background: #1D4ED8;
+        }
+
+        .btn-outline {
+            background: white;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background: var(--bg);
+            border-color: var(--text-muted);
+        }
+
+        .alert {
+            padding: 14px 20px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .alert-success { background: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0; }
+        .alert-error { background: #FEF2F2; color: #991B1B; border: 1px solid #FECACA; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade { animation: fadeIn 0.3s ease-out forwards; }
     </style>
 </head>
 <body>
     <div class="sidebar">
         <div class="sidebar-header">
-            <div style="width: 32px; height: 32px; background: #0A0A0A; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size:18px;">
-                {% if user.company %}{{ user.company.name|first }}{% else %}A{% endif %}
-            </div>
-            <div style="display: flex; flex-direction: column;">
-                <span style="font-size: 18px; line-height: 1;">AttendFlow</span>
-                <span style="font-size: 10px; color: var(--text-muted); font-weight: 500;">{% if user.company %}{{ user.company.name }}{% else %}Master Admin{% endif %}</span>
+            <div class="logo-box">A</div>
+            <div>
+                <span style="font-size: 16px; font-weight: 800; display: block;">AttendOS</span>
+                <span style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Management System</span>
             </div>
         </div>
         <div class="sidebar-menu">
-            <div class="menu-section">Basic Information</div>
-            <a href="{% url 'dashboard_employees' %}" class="menu-item {% if active_tab == 'employees' %}active{% endif %}">Users & Access</a>
-            <a href="{% url 'dashboard_attendance' %}" class="menu-item {% if active_tab == 'attendance' %}active{% endif %}">Time & Attendance</a>
-            <a href="{% url 'dashboard_salary' %}" class="menu-item {% if active_tab == 'salary' %}active{% endif %}">Accounting (Salary)</a>
+            <div class="menu-section">Main Menu</div>
+            <a href="{% url 'dashboard_employees' %}" class="menu-item {% if active_tab == 'employees' %}active{% endif %}">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                Employees
+            </a>
+            <a href="{% url 'dashboard_attendance' %}" class="menu-item {% if active_tab == 'attendance' %}active{% endif %}">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                Attendance
+            </a>
+            <a href="{% url 'dashboard_salary' %}" class="menu-item {% if active_tab == 'salary' %}active{% endif %}">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3-1.343-3-3-3zM12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2z" /></svg>
+                Payroll
+            </a>
+            <a href="{% url 'dashboard_analytics' %}" class="menu-item {% if active_tab == 'analytics' %}active{% endif %}">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                Analytics
+            </a>
+            <a href="{% url 'dashboard_map' %}" class="menu-item {% if active_tab == 'map' %}active{% endif %}">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7l5-2.5 5.553 2.776a1 1 0 01.447.894v10.764a1 1 0 01-1.447.894L14 17l-5 3z" /></svg>
+                Live Map
+            </a>
+            <a href="{% url 'dashboard_qr' %}" class="menu-item {% if active_tab == 'show_qr' %}active{% endif %}">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+                Entrance QR
+            </a>
             
-            <div class="menu-section">System Control</div>
-            <a href="{% url 'dashboard_qr' %}" class="menu-item {% if active_tab == 'show_qr' %}active{% endif %}">Display QR Code</a>
-            <a href="{% url 'dashboard_location' %}" class="menu-item {% if active_tab == 'location' %}active{% endif %}">Office Locations</a>
-            <a href="{% url 'logout' %}" class="menu-item" style="color: var(--danger-text);">Logout Account</a>
+            <div class="menu-section" style="margin-top: 24px;">Configuration</div>
+            <a href="{% url 'dashboard_location' %}" class="menu-item {% if active_tab == 'location' %}active{% endif %}">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                Office Locations
+            </a>
+            <a href="{% url 'dashboard_settings' %}" class="menu-item {% if active_tab == 'settings' %}active{% endif %}">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                Settings
+            </a>
+            <a href="{% url 'logout' %}" class="menu-item" style="color: var(--danger); margin-top: 24px;">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                Logout
+            </a>
         </div>
     </div>
     
     <div class="main-content">
         <div class="topbar">
-            <div class="search-bar">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A3AED0" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                <input type="text" placeholder="Search tasks, users, or reports..." style="margin-bottom:0; border:none; padding:0; background:transparent;">
+            <div class="breadcrumb">
+                <span class="path">Dashboard / {{ active_tab|title }}</span>
+                <span class="page-name">{% if active_tab == 'employees' %}Employee Directory{% elif active_tab == 'analytics' %}Analytics Overview{% elif active_tab == 'attendance' %}Attendance Logs{% elif active_tab == 'salary' %}Payroll Management{% elif active_tab == 'show_qr' %}Entrance QR Point{% else %}Overview{% endif %}</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 20px;">
-                <div style="color:var(--text-main); font-weight: 600; font-size: 14px;">Admin Manager</div>
-                <div class="avatar" style="width: 44px; height: 44px; background: #FFEBEB; color: #EE5D50;">A</div>
+            
+            <div class="topbar-right">
+                <div class="search-box">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    Search...
+                </div>
+                <div class="user-profile">
+                    <div style="text-align: right;">
+                        <span style="font-size: 13px; font-weight: 700; display: block;">{{ user.username|title }}</span>
+                        <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">System Administrator</span>
+                    </div>
+                    <div class="avatar-circle">{{ user.username|first|upper }}</div>
+                </div>
             </div>
         </div>
         <div class="content-area">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{% if message.tags == 'error' %}error{% else %}success{% endif %}">
+                        {{ message }}
+                        <button onclick="this.parentElement.style.display='none'" style="background:none; border:none; color:inherit; cursor:pointer; font-size:18px;">&times;</button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
             {% block dashboard_content %}{% endblock %}
         </div>
     </div>

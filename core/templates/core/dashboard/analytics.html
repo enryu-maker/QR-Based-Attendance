@@ -1,0 +1,112 @@
+{% extends 'core/dashboard_base.html' %}
+{% block dashboard_content %}
+
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 24px;" class="animate-fade">
+    <div class="card">
+        <div style="color: var(--text-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">Total Punches (30d)</div>
+        <div id="stat-total-punches" style="font-size: 24px; font-weight: 800;">0</div>
+    </div>
+    
+    <div class="card">
+        <div style="color: var(--text-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">Avg. Daily Presence</div>
+        <div id="stat-avg-presence" style="font-size: 24px; font-weight: 800; color: var(--primary);">0</div>
+    </div>
+    
+    <div class="card">
+        <div style="color: var(--text-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">Late Ratio</div>
+        <div id="stat-late-ratio" style="font-size: 24px; font-weight: 800; color: var(--danger);">0%</div>
+    </div>
+    
+    <div class="card">
+        <div style="color: var(--text-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">Peak Performance Day</div>
+        <div id="stat-peak-day" style="font-size: 16px; font-weight: 700; color: var(--success); margin-top: 4px;">--</div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;" class="animate-fade">
+    <div class="card">
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 20px;">Daily Presence Breakdown</h3>
+        <div style="height: 300px;">
+            <canvas id="presenceChart"></canvas>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 20px;">Lateness Trends</h3>
+        <div style="height: 300px;">
+            <canvas id="lateChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const presenceData = {{ presence_data|safe }};
+    const lateData = {{ late_data|safe }};
+
+    const totalPunches = presenceData.reduce((acc, curr) => acc + curr.count, 0);
+    const avgPresence = presenceData.length > 0 ? (totalPunches / presenceData.length).toFixed(1) : 0;
+    const totalLate = lateData.reduce((acc, curr) => acc + curr.count, 0);
+    const lateRatio = totalPunches > 0 ? ((totalLate / totalPunches) * 100).toFixed(1) : 0;
+    
+    let peakDay = "--";
+    if(presenceData.length > 0) {
+        const sorted = [...presenceData].sort((a,b) => b.count - a.count);
+        peakDay = new Date(sorted[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    document.getElementById('stat-total-punches').innerText = totalPunches;
+    document.getElementById('stat-avg-presence').innerText = avgPresence;
+    document.getElementById('stat-late-ratio').innerText = lateRatio + '%';
+    document.getElementById('stat-peak-day').innerText = peakDay;
+
+    // Simple Bar Chart
+    new Chart(document.getElementById('presenceChart'), {
+        type: 'bar',
+        data: {
+            labels: presenceData.map(d => d.date),
+            datasets: [{
+                label: 'Punches',
+                data: presenceData.map(d => d.count),
+                backgroundColor: '#2563EB',
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#F1F5F9' }, ticks: { font: { weight: '600' } } },
+                x: { grid: { display: false }, ticks: { font: { weight: '600' } } }
+            }
+        }
+    });
+
+    // Simple Line Chart
+    new Chart(document.getElementById('lateChart'), {
+        type: 'line',
+        data: {
+            labels: lateData.map(d => d.date),
+            datasets: [{
+                label: 'Late',
+                data: lateData.map(d => d.count),
+                borderColor: '#EF4444',
+                borderWidth: 2,
+                pointRadius: 3,
+                tension: 0,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#F1F5F9' }, ticks: { font: { weight: '600' } } },
+                x: { grid: { display: false }, ticks: { font: { weight: '600' } } }
+            }
+        }
+    });
+</script>
+{% endblock %}

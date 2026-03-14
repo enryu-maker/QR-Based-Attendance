@@ -1,38 +1,49 @@
 {% extends 'core/dashboard_base.html' %}
 {% block dashboard_content %}
-<div class="table-container">
-    <div class="title-bar">
+<div class="card animate-fade" style="padding: 0;">
+    <div style="padding: 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
         <div>
-            <h2 style="font-size: 20px; color: var(--text-main); margin-bottom: 4px;">Office Locations</h2>
-            <div style="font-size: 13px; color: var(--text-muted);">Manage physical geo-fencing requirements</div>
+            <h2 style="font-size: 16px; font-weight: 700;">Office Locations</h2>
+            <div style="font-size: 12px; color: var(--text-muted);">Configure geofencing boundaries</div>
         </div>
-        <a href="{% url 'dashboard_add_location' %}" class="btn btn-primary">+ Add New Office</a>
+        <a href="{% url 'dashboard_add_location' %}" class="btn btn-primary">Add New Office</a>
     </div>
     
-    <table style="width: 100%;">
+    <table style="width: 100%; border-collapse: collapse;">
         <thead>
-            <tr>
-                <th style="padding: 18px 24px;">Office Name</th>
-                <th>Latitude</th>
-                <th>Longitude</th>
-                <th>Allowed Radius</th>
+            <tr style="text-align: left; border-bottom: 1px solid var(--border);">
+                <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Office Name</th>
+                <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Coordinates</th>
+                <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Allowed Radius</th>
+                <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Status</th>
+                <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for office in offices %}
-            <tr style="transition: 0.2s;">
-                <td style="display: flex; align-items: center; gap: 14px; border-bottom: none;">
-                    <div class="avatar" style="width: 32px; height: 32px; font-size: 13px;">{{ office.name|first|upper }}</div>
-                    <div style="font-weight: 700;">{{ office.name }}</div>
+            <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 14px 24px; display: flex; align-items: center; gap: 12px;">
+                    <div class="avatar-circle" style="width: 32px; height: 32px; background: #F1F5F9; border: none;">{{ office.name|first|upper }}</div>
+                    <div style="font-weight: 600; font-size: 14px;">{{ office.name }}</div>
                 </td>
-                <td style="color:var(--text-muted);">{{ office.latitude }}</td>
-                <td style="color:var(--text-muted);">{{ office.longitude }}</td>
-                <td>
-                    <span style="background: rgba(33, 150, 243, 0.1); color: var(--primary); padding: 4px 10px; border-radius: 8px; font-weight:800;">{{ office.max_distance_meters }}m</span>
+                <td style="padding: 14px 24px; font-size: 13px; color: var(--text-muted);">
+                    {{ office.latitude|floatformat:4 }}, {{ office.longitude|floatformat:4 }}
+                </td>
+                <td style="padding: 14px 24px;">
+                    <span style="font-size: 13px; font-weight: 700; color: var(--primary);">{{ office.max_distance_meters }}m</span>
+                </td>
+                <td style="padding: 14px 24px;">
+                    <span style="padding: 4px 8px; border-radius: 4px; background: #DCFCE7; color: #166534; font-size: 10px; font-weight: 700;">ACTIVE</span>
+                </td>
+                <td style="padding: 14px 24px;">
+                    <div style="display: flex; gap: 8px;">
+                        <a href="{% url 'dashboard_edit_location' office.id %}" class="btn btn-outline" style="padding: 4px 10px; font-size: 11px; border-radius: 4px;">Edit</a>
+                        <a href="{% url 'dashboard_delete_location' office.id %}" class="btn btn-outline" style="padding: 4px 10px; font-size: 11px; border-radius: 4px; color: var(--danger);" onclick="return confirm('Delete this location?')">Delete</a>
+                    </div>
                 </td>
             </tr>
             {% empty %}
-            <tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding:30px;">No offices configured yet. Add one to enable attendance mapping.</td></tr>
+            <tr><td colspan="4" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;">No office locations defined.</td></tr>
             {% endfor %}
         </tbody>
     </table>

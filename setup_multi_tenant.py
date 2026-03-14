@@ -22,7 +22,7 @@ def setup():
 
     # 3. Create Company
     company, created = Company.objects.get_or_create(
-        name="AttendFlow Demo Corp",
+        name="AttendOS Demo Corp",
         admin_user=user
     )
     if created:

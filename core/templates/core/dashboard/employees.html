@@ -1,140 +1,119 @@
 {% extends 'core/dashboard_base.html' %}
 {% block dashboard_content %}
-<div class="split-layout">
-    <div class="split-list">
-        <div class="title-bar">
-            <div>
-                <h2 style="font-size: 20px; color: var(--text-main); margin-bottom: 4px;">Users & Access List</h2>
-                <div style="font-size: 13px; color: var(--text-muted);">{{ employees|length }} Users registered</div>
-            </div>
-            <a href="{% url 'dashboard_add_employee' %}" class="btn btn-primary">+ New User</a>
+<div style="display: grid; grid-template-columns: 1fr 340px; gap: 24px; height: calc(100vh - 160px);" class="animate-fade">
+    
+    <!-- Employee Table Section -->
+    <div class="card" style="padding: 0; display: flex; flex-direction: column;">
+        <div style="padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="font-size: 16px; font-weight: 700;">Employee Directory</h3>
+            <a href="{% url 'dashboard_add_employee' %}" class="btn btn-primary">Add New Employee</a>
         </div>
         <div style="flex: 1; overflow-y: auto;">
-            <table>
-                <thead style="position: sticky; top: 0; z-index: 10;">
-                    <tr>
-                        <th style="width:40px; padding: 18px 24px;">#</th>
-                        <th>Full Name / Role</th>
-                        <th>Employee ID</th>
-                        <th>Monthly Base</th>
-                        <th>Status</th>
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead style="position: sticky; top: 0; background: white; z-index: 10;">
+                    <tr style="text-align: left; border-bottom: 1px solid var(--border);">
+                        <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Employee</th>
+                        <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">ID</th>
+                        <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Pay Rate</th>
+                        <th style="padding: 14px 24px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Status</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for emp in employees %}
-                    <tr style="cursor: pointer;" onclick="updateDetails('{{emp.first_name}} {{emp.last_name}}', '{{emp.first_name|first|upper}}', '{{emp.email}}', '{{emp.employee_id}}', '₹{{emp.monthly_salary}}', '{{emp.designation}}')">
-                        <td style="color:var(--text-muted); font-size:13px;">{{ forloop.counter }}</td>
-                        <td style="display: flex; align-items: center; gap: 14px; border-bottom: none;">
-                            <div class="avatar">{{ emp.first_name|first|upper }}</div>
+                    <tr style="cursor: pointer; border-bottom: 1px solid var(--border);" 
+                        onclick="updateDetails('{{emp.first_name}} {{emp.last_name}}', '{{emp.first_name|first|upper}}', '{{emp.email}}', '{{emp.employee_id}}', '₹{{emp.monthly_salary|floatformat:0}}', '{{emp.designation}}')">
+                        <td style="padding: 14px 24px; display: flex; align-items: center; gap: 12px;">
+                            <div class="avatar-circle" style="width: 32px; height: 32px; background: #F1F5F9; border: none;">{{ emp.first_name|first|upper }}</div>
                             <div>
-                                <div style="font-weight: 700;">{{ emp.first_name }} {{ emp.last_name }}</div>
-                                <div style="font-size: 12px; color: var(--primary); font-weight: 600; text-transform: uppercase; margin-top:2px;">{{ emp.designation }}</div>
+                                <div style="font-weight: 600; font-size: 14px;">{{ emp.first_name }} {{ emp.last_name }}</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">{{ emp.designation }}</div>
                             </div>
                         </td>
-                        <td>{{ emp.employee_id }}</td>
-                        <td>₹{{ emp.monthly_salary }}</td>
-                        <td><span class="badge badge-success">Active</span></td>
+                        <td style="padding: 14px 24px; font-size: 13px; font-weight: 500;">{{ emp.employee_id }}</td>
+                        <td style="padding: 14px 24px; font-size: 13px; font-weight: 600;">₹{{ emp.monthly_salary|floatformat:0 }}</td>
+                        <td style="padding: 14px 24px;">
+                            <span style="padding: 4px 8px; border-radius: 4px; background: #DCFCE7; color: #166534; font-size: 10px; font-weight: 700;">ACTIVE</span>
+                        </td>
                     </tr>
-                    {% empty %}
-                    <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No employees found.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
-    
-    <div class="split-detail">
-        <div style="height: 120px; background: linear-gradient(135deg, #E0E5F2 0%, #FAFCFF 100%); border-radius: 12px; margin-bottom: -50px;"></div>
-        <div class="avatar" id="det-initial" style="width: 80px; height: 80px; font-size: 32px; margin: 0 auto; border: 4px solid var(--surface); box-shadow: 0 4px 6px rgba(0,0,0,0.05); position: relative;">
-            {% if first_employee %}{{ first_employee.first_name|first|upper }}{% else %}?{% endif %}
-        </div>
-        <h2 id="det-name" style="text-align: center; margin-top: 16px; font-size: 22px; color: var(--text-main);">
-            {% if first_employee %}{{ first_employee.first_name }} {{ first_employee.last_name }}{% else %}Select User{% endif %}
-        </h2>
-        <div id="det-designation" style="text-align: center; color: var(--primary); font-size: 14px; margin-bottom: 24px; font-weight:700; text-transform: uppercase;">
-            {% if first_employee %}{{ first_employee.designation }}{% else %}--{% endif %}
-        </div>
-        
-        <div style="display: flex; gap: 10px; margin-bottom: 30px;">
-            <button class="btn btn-outline" style="flex: 1; padding: 12px; border-color: var(--error); color: var(--error);" onclick="toggleAbsenceForm()">Mark Absent</button>
-            <button class="btn btn-outline" style="flex: 1; padding: 12px; background: #E8FFF3; color: var(--success-text); border-color: transparent;">Message</button>
-        </div>
 
-        <!-- Enhanced Absence Form -->
-        <div id="absence-form-container" style="display: none; background: #FFF5F5; border: 1px solid #FED7D7; border-radius: 16px; padding: 24px; margin-bottom: 30px; animation: slideDown 0.3s ease-out; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h4 style="font-size: 15px; color: #C53030; font-weight: 800;">Log Leave / Absence</h4>
-                <button onclick="toggleAbsenceForm()" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #C53030;">&times;</button>
+    <!-- Quick Detail Section -->
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+        <div class="card" style="text-align: center;">
+            <div id="det-initial" style="width: 64px; height: 64px; border-radius: 12px; background: var(--primary-light); margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; color: var(--primary); border: 1px solid var(--border);">
+                {% if first_employee %}{{ first_employee.first_name|first|upper }}{% else %}?{% endif %}
             </div>
             
-            <div style="display: flex; flex-direction: column; gap: 16px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                    <div>
-                        <label style="font-size: 11px; font-weight: 800; color: #C53030; text-transform: uppercase; display: block; margin-bottom: 6px;">Start Date</label>
-                        <input type="date" id="abs-start" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #FEB2B2; background: white; color: #2D3748;">
-                    </div>
-                    <div>
-                        <label style="font-size: 11px; font-weight: 800; color: #C53030; text-transform: uppercase; display: block; margin-bottom: 6px;">End Date (Optional)</label>
-                        <input type="date" id="abs-end" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #FEB2B2; background: white; color: #2D3748;">
-                    </div>
-                </div>
+            <h2 id="det-name" style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">{{ first_employee.first_name|default:"Employee" }} {{ first_employee.last_name|default:"Name" }}</h2>
+            <div id="det-designation" style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 24px; text-transform: uppercase;">{{ first_employee.designation|default:"Select Employee" }}</div>
 
-                <div style="background: white; padding: 12px; border-radius: 12px; border: 1px solid #FED7D7; display: flex; align-items: center; justify-content: space-between;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <div style="width: 12px; height: 12px; background: var(--success); border-radius: 50%;"></div>
-                        <span style="font-size: 13px; font-weight: 700; color: #2D3748;">Paid Leave (e.g., Medical)</span>
-                    </div>
-                    <label class="switch">
-                        <input type="checkbox" id="abs-paid">
-                        <span class="slider round"></span>
-                    </label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
+                <div style="background: #F8FAFC; padding: 12px; border-radius: 8px; border: 1px solid var(--border); text-align: left;">
+                    <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Employee ID</div>
+                    <div id="det-id" style="font-size: 14px; font-weight: 700;">{{ first_employee.employee_id|default:"--" }}</div>
                 </div>
-
-                <div>
-                    <input type="text" id="abs-reason" placeholder="Reason for leave..." style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #FEB2B2; background: white; color: #2D3748;">
+                <div style="background: #F8FAFC; padding: 12px; border-radius: 8px; border: 1px solid var(--border); text-align: left;">
+                    <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Salary / mo</div>
+                    <div id="det-wage" style="font-size: 14px; font-weight: 700; color: var(--success);">₹{{ first_employee.monthly_salary|floatformat:0|default:"--" }}</div>
                 </div>
+            </div>
 
-                <button class="btn" style="background: #E53E3E; color: white; width: 100%; padding: 14px; font-weight: 800;" onclick="submitAbsence()">Confirm Recording</button>
+            <button class="btn btn-primary" style="width: 100%; margin-bottom: 12px;" onclick="openAttendanceCalendar()">Manage Attendance</button>
+            <div style="display: flex; gap: 8px;">
+                <a id="det-edit-link" href="{% if first_employee %}{% url 'dashboard_edit_employee' first_employee.employee_id %}{% endif %}" class="btn btn-outline" style="flex: 1;">Edit</a>
+                <button id="det-delete-link" 
+                        data-emp-id="{% if first_employee %}{{ first_employee.employee_id }}{% endif %}" 
+                        data-emp-name="{% if first_employee %}{{ first_employee.first_name }} {{ first_employee.last_name }}{% endif %}"
+                        onclick="confirmDelete(event)" 
+                        class="btn btn-outline" style="flex: 1; color: var(--danger);">Delete</button>
             </div>
         </div>
 
-        <div id="contact-info-panel">
-            <h3 style="font-size: 16px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">Contact information</h3>
-            
-            <div style="display: flex; flex-direction: column; gap: 16px; flex: 1;">
-                <div>
-                    <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px; display: flex; align-items:center; gap:6px;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg> E-mail
-                    </div>
-                    <div id="det-email" style="font-weight: 600; font-size:15px; color:var(--text-main);">{% if first_employee %}{{ first_employee.email }}{% else %}--{% endif %}</div>
+        <div class="card" style="padding: 20px;">
+            <h4 style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 16px;">Contact Information</h4>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 32px; height: 32px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--primary);">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                 </div>
-                
                 <div>
-                    <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px; display: flex; align-items:center; gap:6px;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg> Employee ID
-                    </div>
-                    <div id="det-id" style="font-weight: 600; font-size:15px; color:var(--text-main);">{% if first_employee %}{{ first_employee.employee_id }}{% else %}--{% endif %}</div>
-                </div>
-                
-                <div>
-                    <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px; display: flex; align-items:center; gap:6px;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> Monthly Base
-                    </div>
-                    <div id="det-wage" style="font-weight: 600; font-size:15px; color:var(--success-text);">{% if first_employee %}₹{{ first_employee.monthly_salary }}{% else %}--{% endif %}</div>
+                    <div style="font-size: 10px; font-weight: 700; color: var(--text-muted);">Email</div>
+                    <div id="det-email" style="font-size: 13px; font-weight: 600;">{{ first_employee.email|default:"--" }}</div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<style>
-    .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-    .switch input { opacity: 0; width: 0; height: 0; }
-    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #E0E5F2; transition: .4s; border-radius: 24px; }
-    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-    input:checked + .slider { background-color: var(--success); }
-    input:checked + .slider:before { transform: translateX(20px); }
-</style>
+<!-- Modal Placeholders -->
+<div id="calendar-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div class="card animate-fade" style="width: 480px; padding: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="font-size: 16px; font-weight: 700;">Attendance Calendar</h3>
+            <button onclick="closeCalendarModal()" style="background: none; border: none; font-size: 20px; cursor: pointer;">&times;</button>
+        </div>
+        <div id="calendar-month-year" style="text-align: center; font-weight: 700; margin-bottom: 16px; font-size: 14px;"></div>
+        <div id="calendar-days" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;"></div>
+        <div style="margin-top: 24px; display: flex; gap: 12px;">
+            <button onclick="closeCalendarModal()" class="btn btn-outline" style="flex: 1;">Cancel</button>
+            <button id="batch-save-btn" onclick="saveBatchAttendance()" class="btn btn-primary" style="flex: 1;">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<div id="delete-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1001; align-items: center; justify-content: center;">
+    <div class="card animate-fade" style="width: 360px; padding: 24px; text-align: center;">
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">Confirm Deletion</h3>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px;">Are you sure you want to delete <span id="modal-emp-name" style="font-weight: 700; color: var(--text-main);"></span>?</p>
+        <div style="display: flex; gap: 8px;">
+            <button onclick="closeDeleteModal()" class="btn btn-outline" style="flex: 1;">No, keep</button>
+            <button id="modal-confirm-btn" class="btn btn-primary" style="flex: 1; background: var(--danger);">Yes, delete</button>
+        </div>
+    </div>
+</div>
 
 <script>
     function updateDetails(name, initial, email, id, wage, designation) {
@@ -144,65 +123,88 @@
         document.getElementById('det-id').innerText = id;
         document.getElementById('det-wage').innerText = wage;
         document.getElementById('det-designation').innerText = designation;
+        const eLink = document.getElementById('det-edit-link');
+        if(eLink) eLink.href = `/dashboard/employees/edit/${id}/`;
+        const dBtn = document.getElementById('det-delete-link');
+        if(dBtn) { dBtn.dataset.empId = id; dBtn.dataset.empName = name; }
     }
 
-    function toggleAbsenceForm() {
-        const container = document.getElementById('absence-form-container');
-        const contactPanel = document.getElementById('contact-info-panel');
-        
-        container.style.display = container.style.display === 'none' ? 'block' : 'none';
-        contactPanel.style.display = container.style.display === 'none' ? 'block' : 'none';
-        
-        // Default start date to today
-        if (container.style.display === 'block') {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('abs-start').value = today;
+    function confirmDelete(e) {
+        const btn = e.currentTarget;
+        const id = btn.dataset.empId;
+        const name = btn.dataset.empName;
+        if (!id) return;
+        document.getElementById('modal-emp-name').innerText = name;
+        document.getElementById('delete-modal').style.display = 'flex';
+        document.getElementById('modal-confirm-btn').onclick = () => window.location.href = `/dashboard/employees/delete/${id}/`;
+    }
+
+    function closeDeleteModal() { document.getElementById('delete-modal').style.display = 'none'; }
+    function closeCalendarModal() { document.getElementById('calendar-modal').style.display = 'none'; selectedDays = {}; }
+
+    let currentCalDate = new Date();
+    let selectedDays = {};
+
+    function openAttendanceCalendar() {
+        document.getElementById('calendar-modal').style.display = 'flex';
+        renderCalendar();
+    }
+
+    function renderCalendar() {
+        const year = currentCalDate.getFullYear();
+        const month = currentCalDate.getMonth();
+        const monthName = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(currentCalDate);
+        document.getElementById('calendar-month-year').innerText = `${monthName} ${year}`;
+
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const container = document.getElementById('calendar-days');
+        container.innerHTML = '';
+
+        for (let i = 0; i < firstDay; i++) container.innerHTML += '<div></div>';
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const status = selectedDays[dateStr] || 'none';
+            let bg = '#F1F5F9', color = 'var(--text-main)';
+            if (status === 'present') { bg = '#DCFCE7'; color = '#166534'; }
+            else if (status === 'absent') { bg = '#FEE2E2'; color = '#991B1B'; }
+            else if (status === 'paid') { bg = '#FEF3C7'; color = '#92400E'; }
+
+            const dayEl = document.createElement('div');
+            dayEl.style.cssText = `padding: 8px 0; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 700; background: ${bg}; color: ${color}; text-align: center; border: 1px solid var(--border);`;
+            dayEl.innerText = day;
+            dayEl.onclick = () => {
+                const cur = selectedDays[dateStr] || 'none';
+                if (cur === 'none') selectedDays[dateStr] = 'present';
+                else if (cur === 'present') selectedDays[dateStr] = 'absent';
+                else if (cur === 'absent') selectedDays[dateStr] = 'paid';
+                else delete selectedDays[dateStr];
+                renderCalendar();
+            };
+            container.appendChild(dayEl);
         }
     }
 
-    async function submitAbsence() {
+    async function saveBatchAttendance() {
         const empId = document.getElementById('det-id').innerText;
-        const start = document.getElementById('abs-start').value;
-        const end = document.getElementById('abs-end').value;
-        const paid = document.getElementById('abs-paid').checked;
-        const reason = document.getElementById('abs-reason').value;
+        if (!empId || empId === '--') return;
+        const btn = document.getElementById('batch-save-btn');
+        btn.innerText = 'Saving...';
+        btn.disabled = true;
 
-        if (!start) {
-            alert('Please select a start date');
-            return;
-        }
+        const pDates = Object.keys(selectedDays).filter(d => selectedDays[d] === 'present').join(',');
+        const aDates = Object.keys(selectedDays).filter(d => selectedDays[d] === 'absent').join(',');
+        const pdDates = Object.keys(selectedDays).filter(d => selectedDays[d] === 'paid').join(',');
 
-        let dates = [];
-        if (!end || end === start) {
-            dates.push(start);
-        } else {
-            // Generate range of dates
-            let startDate = new Date(start);
-            let endDate = new Date(end);
-            while (startDate <= endDate) {
-                dates.push(startDate.toISOString().split('T')[0]);
-                startDate.setDate(startDate.getDate() + 1);
-            }
-        }
-
-        const datesStr = dates.join(',');
-
-        const response = await fetch("{% url 'dashboard_mark_absence' %}", {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `employee_id=${empId}&dates=${datesStr}&is_paid=${paid}&reason=${reason}`
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            alert(paid ? 'Paid leave recorded.' : 'Absence recorded.');
-            toggleAbsenceForm();
-        } else {
-            alert('Error: ' + data.message);
-        }
+        try {
+            if (pDates) await fetch("{% url 'dashboard_mark_present' %}", { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/x-www-form-urlencoded' }, body: `employee_id=${empId}&dates=${pDates}&reason=Update` });
+            if (aDates) await fetch("{% url 'dashboard_mark_absence' %}", { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/x-www-form-urlencoded' }, body: `employee_id=${empId}&dates=${aDates}&is_paid=false&reason=Update` });
+            if (pdDates) await fetch("{% url 'dashboard_mark_absence' %}", { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/x-www-form-urlencoded' }, body: `employee_id=${empId}&dates=${pdDates}&is_paid=true&reason=Update` });
+            alert('Success');
+            closeCalendarModal();
+        } catch (e) { alert('Error'); }
+        finally { btn.innerText = 'Save Changes'; btn.disabled = false; }
     }
 </script>
 {% endblock %}

@@ -1,0 +1,37 @@
+{% extends 'core/dashboard_base.html' %}
+{% block dashboard_content %}
+<div style="max-width: 800px; margin: 0 auto;" class="animate-fade">
+    <div style="margin-bottom: 32px;">
+        <h2 style="font-size: 24px; font-weight: 700;">Global Configuration</h2>
+        <p style="font-size: 14px; color: var(--text-muted);">Manage system-wide rules and behaviors.</p>
+    </div>
+
+    <form method="POST">
+        {% csrf_token %}
+        <div class="card" style="margin-bottom: 32px;">
+            <h3 style="font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 24px;">Employee ID Logic</h3>
+            
+            <p style="font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
+                Define the starting format for automated employee IDs. The system will detect your prefix and continue the sequence (e.g., <b>EMP101</b> → <b>EMP102</b>).
+            </p>
+
+            <div style="max-width: 400px; margin-bottom: 32px;">
+                <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 8px;">Initial format</label>
+                <input type="text" name="initial_id" value="{{ current_format }}" required style="width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; font-weight: 700; outline: none; color: var(--primary);">
+                <div style="margin-top: 12px; font-size: 12px; color: var(--text-muted);">
+                    Currently active sequence: <b style="color: var(--text-main);">{{ current_format }}</b>
+                </div>
+            </div>
+
+            <div style="background: #F8FAFC; border: 1px solid var(--border); border-radius: 8px; padding: 20px; display: flex; gap: 16px; align-items: flex-start;">
+                <div style="font-size: 20px;">💡</div>
+                <div style="font-size: 13px; line-height: 1.5;">
+                    Changing this format mid-operation will only affect <b>new</b> employees. Existing IDs will remain unchanged.
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 240px; height: 50px;">Save Configuration</button>
+    </form>
+</div>
+{% endblock %}
