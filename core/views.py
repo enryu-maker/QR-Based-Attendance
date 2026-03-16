@@ -46,30 +46,27 @@ def get_payroll_stats(emp, year, month, company):
         employee=emp, date__year=year, date__month=month
     )
     
-    unpaid_full_count = absences.filter(is_paid=False, is_half_day=False).count()
-    unpaid_half_count = absences.filter(is_paid=False, is_half_day=True).count()
-    paid_leave_dates = set(absences.filter(is_paid=True).values_list('date', flat=True))
+    # Payable days include: Presence, Holidays/Sundays, and PAID Leaves
+    paid_full_dates = set(absences.filter(is_paid=True, is_half_day=False).values_list('date', flat=True))
+    present_or_paid_full = (valid_dates | free_dates | paid_full_dates)
     
-    # We calculate payable days by starting with total days and subtracting unpaid absences
-    # But wait, if they don't punch in and there's no Absence record, it's also an unpaid absence?
-    # In this app, yes.
-    # So: Payable = (Present Dates | Free Dates | Paid Leave Dates)
-    # But for half day unpaid: it should be 0.5.
-    
-    present_or_paid_full = (valid_dates | free_dates | paid_leave_dates)
-    
-    # Subtract 0.5 for each unpaid half day
     payable_count = float(len(present_or_paid_full))
-    # If a day is in unpaid_half_dates, we subtract 0.5 from payable_count
-    unpaid_half_dates = set(absences.filter(is_paid=False, is_half_day=True).values_list('date', flat=True))
-    for d in unpaid_half_dates:
-        if d in present_or_paid_full:
-            payable_count -= 0.5
+    
+    # Handle Half Days
+    # Paid Half Day: +0.5 to payable count
+    # Unpaid Half Day: +0.0 to payable count (since it's not in present_or_paid_full)
+    paid_half_dates = set(absences.filter(is_paid=True, is_half_day=True).values_list('date', flat=True))
+    for d in paid_half_dates:
+        if d not in present_or_paid_full:
+            payable_count += 0.5
             
     # Breakdown for UI/Slips
     punched_working_days = len(valid_dates - free_dates)
     paid_free_days = len(free_dates)
-    actual_paid_leaves = len(paid_leave_dates - valid_dates - free_dates)
+    actual_paid_leaves = len(paid_full_dates - valid_dates - free_dates) + (len(paid_half_dates) * 0.5)
+    
+    # Unpaid Absences (for reporting)
+    unpaid_absences_count = total_days - payable_count
     
     # Financial Calculation
     daily_rate = float(emp.monthly_salary) / total_days if total_days > 0 else 0
@@ -87,7 +84,7 @@ def get_payroll_stats(emp, year, month, company):
         'days_present': punched_working_days, 
         'free_days': paid_free_days,
         'paid_leaves': actual_paid_leaves,
-        'unpaid_absences': total_days - payable_count,
+        'unpaid_absences': unpaid_absences_count,
         'payable_days': payable_count,
         'salary': round(max(0, net_salary), 2),
         'gross': round(gross_salary, 2),
@@ -916,7 +913,7 @@ def dashboard_mark_absence(request):
             for d_str in date_list:
                 date_val = datetime.strptime(d_str.strip(), '%Y-%m-%d').date()
                 
-                is_paid = 'paid' in status_type
+                is_paid = status_type in ['full_paid', 'half_paid']
                 is_half = 'half' in status_type
                 
                 Absence.objects.update_or_create(

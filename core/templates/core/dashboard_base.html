@@ -445,6 +445,39 @@
             {% block dashboard_content %}{% endblock %}
         </div>
     </div>
+    <div id="notification-container" style="position: fixed; top: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; pointer-events: none;"></div>
+    <script>
+        function showNotification(message, type = 'success') {
+            const container = document.getElementById('notification-container');
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} animate-fade`;
+            notification.style.pointerEvents = 'auto';
+            notification.style.marginBottom = '0';
+            notification.style.minWidth = '320px';
+            notification.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+            
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    ${type === 'error' 
+                        ? '<svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>'
+                        : '<svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>'
+                    }
+                    <span style="font-weight: 600;">${message}</span>
+                </div>
+                <button onclick="this.parentElement.remove()" style="background:none; border:none; color:inherit; cursor:pointer; font-size:20px; font-weight:700; margin-left: 20px; opacity: 0.5;">&times;</button>
+            `;
+            
+            container.appendChild(notification);
+            setTimeout(() => {
+                if(notification.parentElement) {
+                    notification.style.opacity = '0';
+                    notification.style.transform = 'translateY(-10px)';
+                    notification.style.transition = 'all 0.5s ease';
+                    setTimeout(() => notification.remove(), 500);
+                }
+            }, 4000);
+        }
+    </script>
 </body>
 
 </html>
